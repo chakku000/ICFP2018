@@ -6,6 +6,7 @@
 
 kuwa/1/model
 kuwa/1/interpret
-kuwa/1/trace
+kuwa/1/decode_trace
+kuwa/1/encode_trace
 
 ## end kuwa
