@@ -19,8 +19,7 @@ let parse chan =
           end;
           let byte = Bytes.get buf 0 |> int_of_char in
 
-          let idx = 1 + num / 8 in
-          let offset = (8 + num) - 8 * idx in
+          let offset = num mod 8 in
 
           let b = (byte lsr (7-offset)) land 1 in
           if b = 1 then Full else Void)))

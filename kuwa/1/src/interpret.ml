@@ -67,6 +67,7 @@ let rec run ({ bots; trace } as st) =
         find_opt (fun {bid=i} -> i > prv) bots
         |> function | None -> List.nth bots 0 | Some b -> b
       in
+      Printf.printf "-- %s at %s\n" (show_command tr) (show_vec pos);
       let add_cost =
         let { bid=b' } = List.nth bots 0 in
         if bid = b' then
@@ -117,6 +118,17 @@ let rec run ({ bots; trace } as st) =
         loop trs { st with bots = bots'; enr = enr' }
       end
 
+      (* Fill *)
+      | Fill d -> begin
+        let (fx,fy,fz) = pos +: d in
+        (* TODO: validate pos, volatile coords *)
+        let e = mtx.(fx).(fy).(fz) in
+        mtx.(fx).(fy).(fz) <- Full;
+
+        let enr' = enr + match e with Void -> 12 | Full -> 6 in
+        loop trs { st with enr = enr' }
+      end
+
       (* Fission *)
       | Fission (d, m) -> begin
         guard (List.length seeds >= m+1) "[Fission] lack of seeds" >>= fun _ ->
@@ -136,17 +148,6 @@ let rec run ({ bots; trace } as st) =
 
         let enr' = enr + 24 in
         loop trs { st with bots = bots'; enr = enr' }
-      end
-
-      (* Fill *)
-      | Fill d -> begin
-        let (fx,fy,fz) = pos +: d in
-        (* TODO: validate pos, volatile coords *)
-        let e = mtx.(fx).(fy).(fz) in
-        mtx.(fx).(fy).(fz) <- Full;
-
-        let enr' = enr + match e with Void -> 12 | Full -> 6 in
-        loop trs { st with enr = enr' }
       end
       | _ -> Err "not implemented"
     end
