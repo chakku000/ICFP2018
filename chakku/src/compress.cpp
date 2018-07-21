@@ -33,7 +33,7 @@ constexpr ll mod = 1e9+7;
 const int dx[]={1,0,-1,0} ,dy[] = {0,1,0,-1};
 /*}}}*/
 
-void PrtMove(const string& s,int x,int y,int z){
+void Prt(const string& s,int x,int y,int z){
     cout << s << " " << x << " " << y << " " << z << endl;
 }
 
@@ -61,24 +61,23 @@ void solve(vector<string>& commands){
             y += stoi(command[2]);
             z += stoi(command[3]);
         }else{
-            cout << command[0] << endl;
-            //cout << x << " " << y << " " << z << endl;
             while(x){
                 int nx = min(15,x);
-                PrtMove("SMove",x,0,0);
+                Prt("SMove",x,0,0);
                 x -= nx;
             }
             while(y){
                 int ny = min(15,y);
-                PrtMove("SMove",0,y,0);
+                Prt("SMove",0,y,0);
                 y -= ny;
             }
             while(z){
                 int nz = min(15,z);
-                PrtMove("SMove",0,0,z);
+                Prt("SMove",0,0,z);
                 z -= nz;
             }
-            //cout << commands[i] << endl;
+
+            cout << commands[i] << endl;
         }
     }
 }
