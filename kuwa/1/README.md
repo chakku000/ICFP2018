@@ -1,8 +1,15 @@
 
-# Usage
+## Preparation
 
 ```
-make # all ```
+make # all
+```
+
+## デフォルト実装の `SMove` を圧縮する
+
+```
+./compress ./path/to/trace.nbt
+```
 
 ## モデルを可視化する(見づらい)
 
@@ -24,7 +31,8 @@ make # all ```
 ./encode\_trace ./path/to/trace.txt
 ```
 
-# 命令列を実行して、targetと一致するか調べる
+
+## 命令列を実行して、targetと一致するか調べる
 
 broken
 
@@ -32,5 +40,12 @@ broken
 ./interpret ./path/to/target.mdl ./path/to/trace.nbt
 ```
 
+## Stack overflow (or `Bad\_luck`) したが？
 
+```
+OCAMLRUNPARAM='l=4G'
+```
 
+等を先頭につける
+
+ocamloptはなぜかバグる
