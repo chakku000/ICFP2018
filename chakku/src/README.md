@@ -1,2 +1,4 @@
 - compress.cpp
     - 愚直解のMOVEを圧縮したやつ
+- mini\_flip
+    - compress.cppのharmonicsがhighになっている時間を最小化する
