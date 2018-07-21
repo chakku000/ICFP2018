@@ -14,12 +14,12 @@ def pos2_to_region(c0: List[int], c1: List[int]) -> Tuple[int]:
         y0, y1 = y1, y0
     if not z0 <= z1:
         z0, z1 = z1, z0
-    return tuple(x0, y0, z0, x1, y1, z1)
+    return tuple([x0, y0, z0, x1, y1, z1])
 
 def pos_add(c: List[int], dc: List[int]):
     x0, y0, z0 = c
     dx, dy, dz = dc
-    return tuple(x0+dx, y0+dy, z0+dz)
+    return tuple([x0+dx, y0+dy, z0+dz])
 
 def colli(r0: List[int], r1: List[int]) -> bool:
     x0, y0, z0, x1, y1, z1 = r0
@@ -76,7 +76,7 @@ class Cmd:
     def __check_updated(self) -> bool:
         return self.__updated
 
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         # 各Nanobotに対する更新処理
         assert 0
 
@@ -110,7 +110,7 @@ class Cmd:
 
 # Halt: 停止命令
 class Halt(Cmd):
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
 
     def is_halt(self) -> bool:
@@ -121,7 +121,7 @@ class Halt(Cmd):
 
 # Wait: 待機命令
 class Wait(Cmd):
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
 
     def volatile(self) -> List[List[int]]:
@@ -129,7 +129,7 @@ class Wait(Cmd):
 
 # Flip: harmonicsの反転処理
 class Flip(Cmd):
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
 
     def volatile(self) -> List[List[int]]:
@@ -141,9 +141,9 @@ class SMove(Cmd):
         super().__init__()
         self.lld = lld
 
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
-        b.add_c(lld)
+        b.add_c(self.lld)
         self.pos1 = b.get_c()
 
     def volatile(self) -> List[List[int]]:
@@ -156,7 +156,7 @@ class LMove(Cmd):
         self.sld1 = sld1
         self.sld2 = sld2
 
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
         b.add_c(self.sld1)
         self.pos1 = b.get_c()
@@ -173,7 +173,7 @@ class Fission(Cmd):
         self.nd = nd
         self.m = m
 
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
         self.pos1 = pos_add(self.pos, self.nd)
 
@@ -189,7 +189,7 @@ class Fill(Cmd):
         super().__init__()
         self.nd = nd
 
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
         self.pos1 = pos_add(self.pos, self.nd)
 
@@ -205,7 +205,7 @@ class FusionP(Cmd):
         super().__init__()
         self.nd = nd
 
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
         self.pos1 = pos_add(self.pos)
 
@@ -224,7 +224,7 @@ class FusionS(Cmd):
         super().__init__()
         self.nd = nd
 
-    def update(b: Nanobot) -> None:
+    def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
         self.pos1 = pos_add(self.pos)
 
@@ -238,15 +238,21 @@ class FusionS(Cmd):
         return False
 
 class State:
-    def __init__(self, R: int, M: List[List[List[int]]]):
+    def __init__(self, R: int, targetM: List[List[List[int]]]):
         self.R = R
         self.enegy = 0
         self.harmonics = 0
-        self.matrix = M
-        self.bots = []
+        self.matrix = [[[0]*R for i in range(R)] for j in range(R)]
+        self.target_matrix = targetM
+        bot = Nanobot(1, (0, 0, 0))
+        bot.set_s(tuple(range(2, 21)))
+        self.bots = [bot]
         self.traces = []
-        self.N = 0
+        self.N = 1
         self.exit = 0
+
+    def get_n(self) -> int:
+        return self.N
 
     def is_exit(self) -> bool:
         return bool(self.exit)
@@ -254,6 +260,9 @@ class State:
     def set(self, cmds: List[Cmd]) -> None:
         assert not self.exit, "input commands after halt"
         assert self.N == len(cmds)
+
+        R = self.R
+        M = self.matrix
 
         bots = self.bots
         flip = False
@@ -286,12 +295,12 @@ class State:
                     for r2 in rs2:
                         assert not colli(r1, r2)
             for r1 in rs1:
-                assert not containFill(r1)
+                assert not containFill(r1, M)
 
         if flip:
             self.harmonics ^= 1
 
-        R = self.R
+        tM = self.target_matrix
         d = set()
         for i, cmd in enumerate(cmds):
             bot = bots[i]
@@ -299,6 +308,7 @@ class State:
             if f:
                 x, y, z = f
                 assert M[x][y][z] == 0, (x, y, z)
+                assert tM[x][y][z] == 1, (x, y, z)
                 M[x][y][z] = 1
             g = cmd.generate()
             if g:
@@ -320,3 +330,11 @@ class State:
                     d.add(i)
         self.bots = [bots[i] for i in range(self.N) if i not in d]
 
+    def check(self):
+        M = self.matrix
+        tM = self.target_matrix
+        R = self.R
+        for i in range(R):
+            for j in range(R):
+                for k in range(R):
+                    assert M[i][j][k] == tM[i][j][k], (i, j, k)
