@@ -67,7 +67,6 @@ let rec run ({ bots; trace } as st) =
         find_opt (fun {bid=i} -> i > prv) bots
         |> function | None -> List.nth bots 0 | Some b -> b
       in
-      Printf.printf "-- %s at %s\n" (show_command tr) (show_vec pos);
       let add_cost =
         let { bid=b' } = List.nth bots 0 in
         if bid = b' then
