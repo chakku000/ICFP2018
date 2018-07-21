@@ -1,4 +1,5 @@
 from typing import *
+from collections import deque
 
 # helper
 
@@ -34,6 +35,33 @@ def containFill(r: List[int], M: List[List[List[int]]]) -> int:
                 if M[x][y][z]:
                     return 1
     return 0
+
+dd = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
+def checkGrounded(R: int, M: List[List[List[int]]]) -> bool:
+    que = deque()
+    used = set()
+    for i in range(R):
+        for j in range(R):
+            if M[i][0][j]:
+                que.append((i, 0, j))
+                used.add((i, 0, j))
+    while que:
+        x, y, z = que.popleft()
+        for dx, dy, dz in dd:
+            nx = x + dx; ny = y + dy; nz = z + dz
+            np = (nx, ny, nz)
+            if not 0 <= nx < R or not 0 <= ny < R or not 0 <= nz < R or M[nx][ny][nz] == 0 or np in used:
+                continue
+            que.append(np)
+            used.add(np)
+    for i in range(R):
+        for j in range(R):
+            for k in range(R):
+                if M[i][j][k] and (i, j, k) not in used:
+                    print(i, j, k, M[i])
+                    return 0
+    return 1
+
 
 # ===== Nanobot =====
 
@@ -134,6 +162,9 @@ class Flip(Cmd):
 
     def volatile(self) -> List[List[int]]:
         return [pos_to_region(self.pos)]
+
+    def is_flip(self) -> bool:
+        return True
 
 # SMove: 1回の移動
 class SMove(Cmd):
@@ -286,6 +317,7 @@ class State:
             if cmd.is_flip():
                 flip = True
 
+        # region衝突チェック
         L = len(rs)
         for i in range(L):
             rs1 = rs[i]
@@ -297,8 +329,13 @@ class State:
             for r1 in rs1:
                 assert not containFill(r1, M)
 
+        # flip harmonics
         if flip:
             self.harmonics ^= 1
+
+        # low-harmonicsのチェック
+        if self.harmonics == 0:
+            assert checkGrounded(R, M)
 
         tM = self.target_matrix
         d = set()
@@ -334,6 +371,10 @@ class State:
         M = self.matrix
         tM = self.target_matrix
         R = self.R
+        # まずNanobotが終了しているか
+        assert self.exit
+
+        # 終了後のmatrix内の状態が理想の状態と一致するかを確認
         for i in range(R):
             for j in range(R):
                 for k in range(R):

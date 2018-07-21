@@ -38,7 +38,5 @@ with open(filename, 'r') as f:
             else:
                 assert 0, "unknown command %s" % (cmd, prms)
         state.set(cmds)
-        for bot in state.bots:
-            print(bot.get_c())
     print("finish")
 state.check()
