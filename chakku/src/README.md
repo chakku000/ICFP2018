@@ -1,0 +1,2 @@
+- compress.cpp
+    - 愚直解のMOVEを圧縮したやつ
