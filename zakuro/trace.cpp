@@ -44,6 +44,7 @@ command_data decode_sld(unsigned char a1, unsigned char i1, unsigned char a2, un
   if(a2 == 0b01) d.sld.x2 = (int)i2-5;
   if(a2 == 0b10) d.sld.y2 = (int)i2-5;
   if(a2 == 0b11) d.sld.z2 = (int)i2-5;
+  return d;
 }
 
 
