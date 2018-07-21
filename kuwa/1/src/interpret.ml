@@ -12,6 +12,12 @@ let rec drop n = function
   | x::xs when n > 0 -> drop (n-1) xs
   | xs -> xs
 
+let cons x xs = x::xs
+
+let rec find_opt f = function
+  | [] -> None
+  | x::xs -> if f x then Some x else find_opt f xs
+
 (* END utility *)
 
 type id = int
@@ -25,7 +31,7 @@ type bot = {
 
 let cmp_bot {bid=i1} {bid=i2} = i1-i2
 let add_bot ({bid=i} as b) bs =
-  List.filter (fun {bid=j} -> i <> j) bs |> List.cons b
+  List.filter (fun {bid=j} -> i <> j) bs |> cons b
   |> List.sort cmp_bot
 
 type state = {
@@ -53,7 +59,7 @@ let rec run ({ bots; trace } as st) =
       guard (List.length bots >= 1) "no active bot" >>= fun _ ->
 
       let ({ bid; pos; seeds } as bot) =
-        List.find_opt (fun {bid=i} -> i > prv) bots
+        find_opt (fun {bid=i} -> i > prv) bots
         |> function | None -> List.nth bots 0 | Some b -> b
       in
       let add_cost =
@@ -120,7 +126,7 @@ let rec run ({ bots; trace } as st) =
         (* TODO: validate pos, volatile coords *)
         let bots' =
           List.filter (fun {bid=i} -> i <> bid && i <> child_bid) bots
-          |> List.cons child |> List.cons bot' |> List.sort cmp_bot
+          |> cons child |> cons bot' |> List.sort cmp_bot
         in
 
         let enr' = enr + 24 in

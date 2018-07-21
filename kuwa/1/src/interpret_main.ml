@@ -1,5 +1,6 @@
 
 open Result
+open Interpret
 
 let rec seq a b = if a > b then [] else a :: seq (a+1) b
 let cmtx r = Array.init r (fun _ -> Array.make_matrix r r Model.Void)
@@ -13,13 +14,13 @@ let () =
   Printf.printf "trace: %s\n%!" Sys.argv.(2);
   let (r,mtx) = Model.parse (open_in_bin Sys.argv.(1)) in
   let trace = Trace.parse (open_in_bin Sys.argv.(2)) in
-  let init_st : Interpret.state = {
+  let init_st : state = {
     enr = 0;
     hrm = Low;
     r = r;
     mtx = cmtx r;
     prv = -1;
-    bots : Interpret.bot list = [
+    bots = [
       { bid = 1;
         pos = (0,0,0);
         seeds = seq 2 20; }
@@ -27,7 +28,7 @@ let () =
     trace = trace;
   } in
 
-  Interpret.run init_st
+  run init_st
   |> begin function
     | Err msg -> Printf.printf "[error] %s\n" msg
     | Ok ({ enr; mtx=mtx' }) -> begin
