@@ -51,7 +51,6 @@ vector<string> split(string str,char delim){
     return res;
 }/*}}}*/
 
-
 void solve(vector<string>& commands){
     int x=0,y=0,z=0;
     for(int i=0;i<commands.size();i++){
@@ -61,19 +60,26 @@ void solve(vector<string>& commands){
             y += stoi(command[2]);
             z += stoi(command[3]);
         }else{
+            int tx=1,ty=1,tz=1;
+            if(x<0) tx=-1;
+            if(y<0) ty=-1;
+            if(z<0) tz=-1;
+            x=abs(x);
+            y=abs(y);
+            z=abs(z);
             while(x){
                 int nx = min(15,x);
-                Prt("SMove",x,0,0);
+                Prt("SMove",nx*tx,0,0);
                 x -= nx;
             }
             while(y){
                 int ny = min(15,y);
-                Prt("SMove",0,y,0);
+                Prt("SMove",0,ny*ty,0);
                 y -= ny;
             }
             while(z){
                 int nz = min(15,z);
-                Prt("SMove",0,0,z);
+                Prt("SMove",0,0,nz*tz);
                 z -= nz;
             }
 
