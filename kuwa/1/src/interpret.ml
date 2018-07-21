@@ -46,11 +46,16 @@ type state = {
 
 let rec run ({ bots; trace } as st) =
   let n = List.length bots in
-  if n = 0 then
+  if n = 0 then begin
     if trace = [] then Ok st else Err "dead"
-  else
+  end else begin
+
   let tr, trace' = take n trace, drop n trace in
-  let rec loop tr ({ enr; hrm; r; bots; prv; trace} as st) =
+  if List.length tr <> n then
+    Err "lack of traces"
+  else
+
+  let rec loop tr ({ enr; hrm; r; bots; prv; trace } as st) =
     match tr with
     (* end of traces *)
     | [] -> Ok st
@@ -147,3 +152,4 @@ let rec run ({ bots; trace } as st) =
     end
   in
   loop tr st >>= fun st' -> run { st' with trace = trace' }
+  end
