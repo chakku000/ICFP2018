@@ -1,0 +1,11 @@
+
+**/*.cmi
+**/*.cmo
+
+## kuwa
+
+kuwa/1/model
+kuwa/1/interpret
+kuwa/1/trace
+
+## end kuwa
