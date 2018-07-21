@@ -62,6 +62,22 @@ def checkGrounded(R: int, M: List[List[List[int]]]) -> bool:
                     return 0
     return 1
 
+def check_LD(ld: List[int]) -> bool:
+    x, y, z = ld
+    xd = abs(x) == 0; yd = abs(y) == 0; zd = abs(z) == 0
+    return xd^yd^zd == 0 and xd|yd|zd == 1
+
+def check_SLD(sld: List[int]) -> bool:
+    x, y, z = sld
+    return check_LD(sld) and abs(x) + abs(y) + abs(z) <= 5
+
+def check_LLD(lld: List[int]) -> bool:
+    x, y, z = lld
+    return check_LD(lld) and abs(x) + abs(y) + abs(z) <= 15
+
+def check_ND(nd: List[int]) -> bool:
+    ax, ay, az = map(abs, nd)
+    return 0 < ax + ay + az <= 2 and max(ax, ay, az) == 1
 
 # ===== Nanobot =====
 
@@ -171,6 +187,7 @@ class SMove(Cmd):
     def __init__(self, lld: List[int]):
         super().__init__()
         self.lld = lld
+        assert check_LLD(lld), lld
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
@@ -186,6 +203,8 @@ class LMove(Cmd):
         super().__init__()
         self.sld1 = sld1
         self.sld2 = sld2
+        assert check_SLD(sld1), sld1
+        assert check_SLD(sld2), sld2
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
@@ -203,6 +222,7 @@ class Fission(Cmd):
         super().__init__()
         self.nd = nd
         self.m = m
+        assert check_ND(nd), nd
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
@@ -219,6 +239,7 @@ class Fill(Cmd):
     def __init__(self, nd: List[int]):
         super().__init__()
         self.nd = nd
+        assert check_ND(nd), nd
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
@@ -235,6 +256,7 @@ class FusionP(Cmd):
     def __init__(self, nd: List[int]):
         super().__init__()
         self.nd = nd
+        assert check_ND(nd), nd
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
@@ -254,6 +276,7 @@ class FusionS(Cmd):
     def __init__(self, nd: List[int]):
         super().__init__()
         self.nd = nd
+        assert check_ND(nd), nd
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
