@@ -1,5 +1,6 @@
 
-open Command exception Invalid_trace
+open Command
+exception Invalid_trace
 
 (*
  * decode
@@ -28,55 +29,62 @@ let decode_ncd nd =
 
 (* parse: parse .nbt file *)
 let parse_bin chan = begin
-  let len = in_channel_length chan in
-  let body = really_input_string chan len in
+  let read_byte =
+    let buf = Bytes.make 1 '0' in
+    fun chan ->
+      try really_input chan buf 0 1; Some (Bytes.get buf 0 |> int_of_char)
+      with _ -> None
+  in
 
-  let rec loop idx =
-    if idx >= len then []
-    else begin
-      let cmd, idx' = begin
-        let b = int_of_char body.[idx] in
-        match b with
-        | 0b11111111 -> Halt, idx+1
-        | 0b11111110 -> Wait, idx+1
-        | 0b11111101 -> Flip, idx+1
-        | _ -> begin
-          match b land 0b1111, b land 0b111 with
-          | 0b0100, _ -> begin (* SMove *)
-            let a = (b lsr 4) land 0b11 in
-            let i = int_of_char body.[idx+1] land 0b11111 in
-            Smove (decode_lld a i), idx+2
-          end
-          | 0b1100, _ -> begin (* LMove *)
-            let a2 = (b lsr 6) land 0b11 in
-            let a1 = (b lsr 4) land 0b11 in
-            let b' = int_of_char body.[idx+1] in
-            let i2, i1 = (b' lsr 4), b' land 0b1111 in
-            Lmove (decode_lld a1 i1, decode_lld i2 a2), idx+2
-          end
-          | _, 0b111 -> begin (* FusionP *)
-            let nd = (b lsr 3) land 0b11111 in
-            Fusion1 (decode_ncd nd), idx+1
-          end
-          | _, 0b110 -> begin (* FusionS *)
-            let nd = (b lsr 3) land 0b11111 in
-            Fusion2 (decode_ncd nd), idx+1
-          end
-          | _, 0b101 -> begin (* Fission *)
-            let nd = (b lsr 3) land 0b11111 in
-            let b' = int_of_char body.[idx+1] in
-            Fission (decode_ncd nd, b'), idx+2
-          end
-          | _, 0b011 -> begin (* Fill *)
-            let nd = (b lsr 3) land 0b11111 in
-            Fill (decode_ncd nd), idx+1
-          end
-          | _ -> raise Invalid_trace
+  let rec loop () =
+    match read_byte chan with
+    | None -> []
+    | Some b -> begin
+      let cmd = match b with
+      | 0b11111111 -> Halt
+      | 0b11111110 -> Wait
+      | 0b11111101 -> Flip
+      | _ -> begin
+        match b land 0b1111, b land 0b111 with
+        | 0b0100, _ -> begin (* SMove *)
+          let a = (b lsr 4) land 0b11 in
+          match read_byte chan with
+          | None -> raise Invalid_trace
+          | Some b' -> let i = b' land 0b11111 in Smove (decode_lld a i)
         end
-      end in
-      cmd :: loop idx'
+        | 0b1100, _ -> begin (* LMove *)
+          let a2 = (b lsr 6) land 0b11 in
+          let a1 = (b lsr 4) land 0b11 in
+          match read_byte chan with
+          | None -> raise Invalid_trace
+          | Some b' ->
+             let i2, i1 = (b' lsr 4), b' land 0b1111 in
+             Lmove (decode_lld a1 i1, decode_lld i2 a2)
+        end
+        | _, 0b111 -> begin (* FusionP *)
+          let nd = (b lsr 3) land 0b11111 in
+          Fusion1 (decode_ncd nd)
+        end
+        | _, 0b110 -> begin (* FusionS *)
+          let nd = (b lsr 3) land 0b11111 in
+          Fusion2 (decode_ncd nd)
+        end
+        | _, 0b101 -> begin (* Fission *)
+          let nd = (b lsr 3) land 0b11111 in
+          match read_byte chan with
+          | None -> raise Invalid_trace
+          | Some b' -> Fission (decode_ncd nd, b')
+        end
+        | _, 0b011 -> begin (* Fill *)
+          let nd = (b lsr 3) land 0b11111 in
+          Fill (decode_ncd nd)
+        end
+        | _ -> raise Invalid_trace
+      end
+      in
+      cmd :: loop ()
     end
-  in loop 0
+  in loop ()
 end
 
 let print =
