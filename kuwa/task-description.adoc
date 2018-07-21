@@ -1,0 +1,146 @@
+= 説明文を途中までまとめたやつ
+:footer-style: none
+
+== 概要 ==
+
+3Dプリントを最適化するゲーム
+
+=== 登場物 ===
+
+- The global resonant subspace field (以下フィールドと呼ぶ)
+  * `R*R*R` のvoxelからなる大きな立方体 (`R <= 250`)
+  * フィールドには2つのharmonicsがある(low harmonics, high harmonics)
+    ** low harmonics: すべてのプリントは地についている(=grounded; 後述)必要がある
+    ** high harmonics: プリントに制約なし
+- voxel
+  * 単位となる立方体
+  * Full と Void の2状態がある
+- nanobot
+  * フィールド中を移動するvoxel大のロボット
+  * Voidの場所にのみ存在できる
+  * 後述するが、以下のような行動ができる
+    ** 移動(いろいろな移動がある; 後述)
+    ** プリント(近くのVoidなvoxelをFullにする)
+    ** fission(新しいnanobotを近くに生成)
+    ** fusion(近くのnanobotと融合)
+  * 各行動でエナジーを消費する
+
+=== 目的 ===
+
+できるだけ消費エナジーを小さくして、対象のモデルをプリントする
+
+== 用語説明: coordinate system ==
+
+=== はじめに ===
+
+- フィールドの立方体の1辺の長さ
+- 座標(coordinate): `(x, y, z) where 0 <= x,y,z < R`
+  * x横 y高さ z奥行き
+
+=== coordinate differences ===
+
+- coordinate difference: `<dx,dy,dz>`
+  * 要はベクトル
+- マンハッタン距離(Manhattan length)
+  * `mlen(<dx, dy, dz>) := |dx| + |dy| + |dz|`
+- チェス盤距離(Chessboard length)
+  * `clen(<dx, dy, dz>) := max(|dx|, |dy|, |dz|)`
+- Linear Coordinate Differences (以下LCD)
+  * `<dx,dy,dz>` がLCD ⇔ `dx,dy,dz` のうち1つだけが非ゼロ
+  * 要はある軸に平行な移動であるということ
+- short linear coordinate difference
+  * `d` が short LCD ⇔ `d` は `mlen(d) <= 5` を満たすLCD
+- long linear coordinate difference
+  * `d` が long LCD ⇔ `d` は `mlen(d) <=15` を満たすLCD
+- near coordinate difference
+  * `d` が near LCD ⇔ `d` は `0 < mlen(d) <= 2` かつ `clen(d) = 1` を満たすLCD
+
+=== region ===
+
+- フィールド内の直方体を `[c1, c2]` と２つの座標で表す
+  * `c1 = (x1,y1,z1), c2 = (x2,y2,z2)` のとき、以下を満たす領域を表す
+    ** `min(x1,x2) <= x <= max(x1,x2)`
+    ** `min(y1,y2) <= y <= may(y1,y2)`
+    ** `min(z1,z2) <= z <= maz(z1,z2)`
+
+=== grounded ===
+
+- あるFullな座標`c = (x,y,z)`がgrounded:
+  * 1) `y = 0` あるいは + 
+    2) ある`mlen(d) = 1` なる `d` が存在し、
+    `c' = c + d` がgrounded
+- 要は地面からたどればすべてのFullな座標にたどり着ける状態
+
+== ルール ==
+
+=== データ型 ===
+
+==== 1. State ====
+
+グローバルな状態
+
+- energy : int
+  * 消費エネルギー
+- harmonics: Low | High
+  * フィールドのharmonics
+- matrix: array (array ( array (Full | Void)))
+  * フィールド内の各voxelの状態
+- bots: set Bot
+  * 稼働中のnanobotの集合
+- trace: array Command
+  * コマンド列
+  * 複数のnanobotが可動している時、コマンド列はbotのidが小さい順に渡される
+    ** `trace = a : b : c : d : e : xs`、  `botID = {1, 5, 10, 3, 20}` の時
+    ** `1(a) -> 5(c) -> 10(d) -> 3(b) -> 20(e)` の順番に実行される
+
+==== 2. Nanobot ====
+
+IDは正の整数
+
+- bid: ID
+  * unique ID
+- pos: (int, int, int)
+  * 座標
+- seeds: set ID
+  * fissionで生成する子nanobotに割り当てられるIDの集合
+
+=== well-formedness ===
+
+システムの状態はwell-formedでなければならない +
+システムが以下を満たす時、well-formedである
+
+- harmonicsがlow -> grounded
+- 各nanobotが異なるIDを持つ
+- 各nanobotは異なる座標にあり、その座標はVoidである
+- 各nanobotのseedはdisjoint(同じ値を2つ持たない)
+- 各nanobotのseedが、稼働中のnanobotのIDと一致しない
+
+=== interfere ===
+
+要はnanobotが互いに干渉しちゃいけないというルール
+
+- volatile coordinates
+  * コマンドの節で詳述する
+  * 各ステップでnanobotが利用する座標の集合
+    ** 例: あるnanobotが `(0,0,0)` から `(0,10,0)` に移動
+      *** これによるvolatile coordinatesは `(0,y,0) where 0 <= y <= 10`
+- 1ステップにおける各nanobotのアクションによるvolatile coordinatesは重複があってはならない
+
+=== energy ===
+
+システムはharmonicsや時間経過でエネルギーを使う
+
+- harmonics
+  * Highのときの消費エネルギー: `30 * R * R * R`
+  * Lowのときの消費エネルギー: `3 * R * R * R`
+- active nanobots
+  * nanobotの数が`n`のときの消費エネルギー: `20 * n`
+- これらの消費エネルギーは、そのステップの開始時(nanobotが行動する前)に計算する
+  * 
+- 各nanobotの行動は干渉しないはずなので、そのステップ内での実行順序は関係なし
+
+=== commands ===
+
+原文がわかりやすい
+
+== Trace ==
