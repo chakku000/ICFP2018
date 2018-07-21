@@ -132,11 +132,10 @@ void solve(int R,vector<string>& commands){
 int main(int argc,char** argv){
     if(argc<=2){
         cerr << "引数氏〜〜" << endl;
-        exit(1);
+        return 1;
     }
     vector<P> boxes;
 
-    std::ifstream ifs(argv[1]);
     std::string str;
     vector<string> commands;
     char R;
@@ -166,9 +165,11 @@ int main(int argc,char** argv){
         }
     }
 
+    std::ifstream ifs(argv[1]);
     while(getline(ifs,str)){
         commands.emplace_back(str);
     }
+
 
     ifs.close();
     solve(R,commands);
