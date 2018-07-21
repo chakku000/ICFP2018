@@ -22,13 +22,13 @@ make # all
 合ってるといいなぁ
 
 ```
-./decode\_trace ./path/to/trace.nbt
+./decode_trace ./path/to/trace.nbt
 ```
 
 ## 読める命令列を既定のバイナリで出力
 
 ```
-./encode\_trace ./path/to/trace.txt
+./encode_trace ./path/to/trace.txt
 ```
 
 
@@ -40,7 +40,7 @@ broken
 ./interpret ./path/to/target.mdl ./path/to/trace.nbt
 ```
 
-## Stack overflow (or `Bad\_luck`) したが？
+## Stack overflow (or `Bad_luck`) したが？
 
 ```
 OCAMLRUNPARAM='l=4G'
