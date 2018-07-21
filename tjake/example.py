@@ -40,3 +40,4 @@ with open(filename, 'r') as f:
         state.set(cmds)
     print("finish")
 state.check()
+print(state.get_energy())

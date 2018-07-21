@@ -122,7 +122,7 @@ class Cmd:
 
     def update(self, b: Nanobot) -> None:
         # 各Nanobotに対する更新処理
-        assert 0
+        assert 0, "update() is not implemented"
 
     def is_halt(self) -> bool:
         # 停止させるか (Haltの時だけTrue)
@@ -152,6 +152,10 @@ class Cmd:
     def is_primary_fusion(self) -> bool:
         return True
 
+    def calc_cost(self) -> int:
+        assert 0, "calc_cost() is not implemented"
+        return 0
+
 # Halt: 停止命令
 class Halt(Cmd):
     def update(self, b: Nanobot) -> None:
@@ -163,6 +167,9 @@ class Halt(Cmd):
     def volatile(self) -> List[List[int]]:
         return [pos_to_region(self.pos)]
 
+    def calc_cost(self):
+        return 0
+
 # Wait: 待機命令
 class Wait(Cmd):
     def update(self, b: Nanobot) -> None:
@@ -170,6 +177,9 @@ class Wait(Cmd):
 
     def volatile(self) -> List[List[int]]:
         return [pos_to_region(self.pos)]
+
+    def calc_cost(self):
+        return 0
 
 # Flip: harmonicsの反転処理
 class Flip(Cmd):
@@ -181,6 +191,9 @@ class Flip(Cmd):
 
     def is_flip(self) -> bool:
         return True
+
+    def calc_cost(self):
+        return 0
 
 # SMove: 1回の移動
 class SMove(Cmd):
@@ -196,6 +209,10 @@ class SMove(Cmd):
 
     def volatile(self) -> List[List[int]]:
         return [pos2_to_region(self.pos, self.pos1)]
+
+    def calc_cost(self):
+        x, y, z = self.lld
+        return 2*(abs(x) + abs(y) + abs(z))
 
 # LMove: 2回の移動
 class LMove(Cmd):
@@ -216,6 +233,11 @@ class LMove(Cmd):
     def volatile(self) -> List[List[int]]:
         return [pos2_to_region(self.pos, self.pos1), pos2_to_region(self.pos1, self.pos2)]
 
+    def calc_cost(self):
+        x0, y0, z0 = self.lld
+        x1, y1, z1 = self.lld
+        return 2*(abs(x0) + abs(y0) + abs(z0) + 2 + abs(x1) +abs(y1) + abs(z1))
+
 # Fission: 分裂
 class Fission(Cmd):
     def __init__(self, nd: List[int], m: int):
@@ -234,6 +256,9 @@ class Fission(Cmd):
     def generate(self) -> Tuple[int, List[int]]:
         return (m, self.pos1)
 
+    def calc_cost(self):
+        return 24
+
 # Fill: 埋める
 class Fill(Cmd):
     def __init__(self, nd: List[int]):
@@ -250,6 +275,10 @@ class Fill(Cmd):
 
     def fill(self):
         return self.pos1
+
+    def calc_cost(self):
+        # 既にFillされているケースを想定しない
+        return 12
 
 # FusionP (Fusion Primary): Fusionの代表者
 class FusionP(Cmd):
@@ -271,6 +300,9 @@ class FusionP(Cmd):
     def is_primary_fusion(self) -> bool:
         return True
 
+    def calc_cost(self):
+        return -24
+
 # FusionS (Fusion Secondary): Fusionの子供
 class FusionS(Cmd):
     def __init__(self, nd: List[int]):
@@ -291,10 +323,14 @@ class FusionS(Cmd):
     def is_primary_fusion(self) -> bool:
         return False
 
+    def calc_cost(self):
+        # FusionPでコストが計算される
+        return 0
+
 class State:
     def __init__(self, R: int, targetM: List[List[List[int]]]):
         self.R = R
-        self.enegy = 0
+        self.energy = 0
         self.harmonics = 0
         self.matrix = [[[0]*R for i in range(R)] for j in range(R)]
         self.target_matrix = targetM
@@ -307,6 +343,9 @@ class State:
 
     def get_n(self) -> int:
         return self.N
+
+    def get_energy(self) -> int:
+        return self.energy + 3*self.R**3 + 20
 
     def is_exit(self) -> bool:
         return bool(self.exit)
@@ -339,6 +378,14 @@ class State:
             rs.append(cmd.volatile())
             if cmd.is_flip():
                 flip = True
+
+            self.energy += cmd.calc_cost()
+        self.energy += 20 * self.N
+
+        if self.harmonics:
+            self.energy += 30 * R**3
+        else:
+            self.energy += 3 * R**3
 
         # region衝突チェック
         L = len(rs)
