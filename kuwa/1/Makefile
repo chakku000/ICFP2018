@@ -12,16 +12,17 @@ OUT := $(MODEL_OUT) $(COMPRESS_OUT) $(DECODE_TRACE_OUT) $(ENCODE_TRACE_OUT) $(IN
 all: interpret compress decode_trace encode_trace model
 
 interpret:
-	ocamlc -I src/ src/result.ml src/model.ml src/command.ml src/trace.ml src/interpret.ml src/interpret_main.ml -o $(INTERPRET_OUT)
+	ocamlopt -I src/ src/result.ml src/model.ml src/command.ml src/trace.ml src/interpret.ml src/interpret_main.ml -o $(INTERPRET_OUT)
 
 compress:
-	ocamlc -I src/ src/result.ml src/model.ml src/command.ml src/trace.ml src/compress.ml src/compress_main.ml -o $(COMPRESS_OUT)
+	ocamlopt -I src/ src/result.ml src/model.ml src/command.ml src/trace.ml src/compress.ml src/compress_main.ml -o $(COMPRESS_OUT)
 
 decode_trace:
-	ocamlc -I src/ src/model.ml src/command.ml src/trace.ml src/decode_trace.ml -o $(DECODE_TRACE_OUT)
+	ocamlopt -I src/ src/model.ml src/command.ml src/trace.ml src/decode_trace.ml -o $(DECODE_TRACE_OUT)
 
 encode_trace:
-	ocamlc -I src/ src/model.ml src/command.ml src/trace.ml src/encode_trace.ml -o $(ENCODE_TRACE_OUT)
+	ocamlopt -I src/ src/model.ml src/command.ml src/trace.ml src/encode_trace.ml -o $(ENCODE_TRACE_OUT)
+
 
 model:
 	ocamlc -I src/ src/model.ml src/model_main.ml -o $(MODEL_OUT)
