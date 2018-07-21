@@ -62,7 +62,7 @@ let parse_bin chan = begin
           | None -> raise (Invalid_trace "LMove")
           | Some b' ->
              let i2, i1 = b' lsr 4, b' land 0b11111 in
-             Lmove (decode_lld a1 i1, decode_lld a2 i2)
+             Lmove (decode_sld a1 i1, decode_sld a2 i2)
         end
         | _, 0b111 -> begin (* FusionP *)
           let nd = (b lsr 3) land 0b11111 in
