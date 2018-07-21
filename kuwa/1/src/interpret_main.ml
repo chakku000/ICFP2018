@@ -13,7 +13,7 @@ let () =
   Printf.printf "model: %s\n" Sys.argv.(1);
   Printf.printf "trace: %s\n%!" Sys.argv.(2);
   let (r,mtx) = Model.parse (open_in_bin Sys.argv.(1)) in
-  let trace = Trace.parse (open_in_bin Sys.argv.(2)) in
+  let trace = Trace.parse_bin (open_in_bin Sys.argv.(2)) in
   let init_st : state = {
     enr = 0;
     hrm = Low;

@@ -1,7 +1,10 @@
 
-open Command
+open Command exception Invalid_trace
 
-exception Invalid_trace
+(*
+ * decode
+ *)
+
 (* short coordinate difference *)
 let decode_sld a i =
   match a with
@@ -11,8 +14,7 @@ let decode_sld a i =
   | _ -> raise Invalid_trace
 
 (* long coordinate difference *)
-let decode_lld a i =
-  match a with
+let decode_lld a i = match a with
   | 0b01 -> (i-15, 0, 0)
   | 0b10 -> (0, i-15, 0)
   | 0b11 -> (0, 0, i-15)
@@ -25,7 +27,7 @@ let decode_ncd nd =
   (nd mod 3) - 1
 
 (* parse: parse .nbt file *)
-let parse chan = begin
+let parse_bin chan = begin
   let len = in_channel_length chan in
   let body = really_input_string chan len in
 
@@ -80,3 +82,94 @@ end
 let print =
   List.iter (fun cmd ->
     print_endline (show_command cmd))
+
+(*
+ * encode
+ *)
+
+exception End_of_inst
+exception Invalid_command
+
+let parse_inst chan =
+  let scan fmt = Scanf.bscanf chan fmt in
+  let f s = 
+    s |> function
+    | "Halt" -> Halt
+    | "Wait" -> Wait
+    | "Flip" -> Flip
+    | "SMove" -> begin
+      scan " %d %d %d" (fun x y z -> Smove (x,y,z))
+    end
+    | "LMove" -> begin
+      scan " %d %d %d %d %d %d" (fun x1 y1 z1 x2 y2 z2 -> Lmove ((x1,y1,z1), (x2,y2,z2)))
+    end
+    | "Fission" -> begin
+      scan " %d %d %d %d" (fun x y z m -> Fission ((x,y,z), m))
+    end
+    | "Fill" -> begin
+      scan " %d %d %d" (fun x y z -> Fill (x,y,z))
+      end
+    | "FusionP" -> begin
+      scan " %d %d %d" (fun x y z -> Fusion1 (x,y,z))
+    end
+    | "FusionS" -> begin
+      scan " %d %d %d" (fun x y z -> Fusion2 (x,y,z))
+    end
+    | _ -> raise Invalid_command
+  in
+  let rec loop () =
+    try
+      let cmd = scan " %s" (fun s -> 
+        if s = "" then raise End_of_inst;
+        f s) in
+      cmd :: loop ()
+    with
+      End_of_inst | Scanf.Scan_failure _ -> []
+  in loop ()
+
+exception Invalid_sld
+exception Invalid_lld
+
+let encode_sld = function
+  | x,0,0 -> (0b01, x+5)
+  | 0,y,0 -> (0b10, y+5)
+  | 0,0,z -> (0b11, z+5)
+  | _ -> raise Invalid_sld
+
+let encode_lld = function
+  | x,0,0 -> (0b01, x+15)
+  | 0,y,0 -> (0b10, y+15)
+  | 0,0,z -> (0b11, z+15)
+  | _ -> raise Invalid_lld
+
+let encode_nd (x,y,z) = (x+1) * 9 + (y+1) * 3 + (z+1)
+
+let encode_cmd cmd =
+  match cmd with
+  | Halt -> [0b11111111]
+  | Wait -> [0b11111110]
+  | Flip -> [0b11111101]
+  | Smove lld -> begin
+    let a, i = encode_lld lld in
+    [(a lsl 4) + 0b0100; i]
+  end
+  | Lmove (sld1,sld2) -> begin
+    let a1, i1 = encode_sld sld1 in
+    let a2, i2 = encode_sld sld2 in
+    [(a2 lsl 6) + (a1 lsl 4) + 0b1100; (i2 lsl 4) + i1]
+  end
+  | Fission (nd, m) -> begin
+    [(encode_nd nd lsl 3) + 0b101; m]
+  end
+  | Fill nd -> begin
+    [(encode_nd nd lsl 3) + 0b011]
+  end
+  | Fusion1 nd -> begin
+    [(encode_nd nd lsl 3) + 0b111]
+  end
+  | Fusion2 nd -> begin
+    [(encode_nd nd lsl 3) + 0b110]
+  end
+
+let print_bin trace =
+  List.iter (fun t -> List.iter (output_byte stdout) (encode_cmd t)) trace

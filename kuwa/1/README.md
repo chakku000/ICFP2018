@@ -2,8 +2,7 @@
 # Usage
 
 ```
-make # all
-```
+make # all ```
 
 ## モデルを可視化する(見づらい)
 
@@ -16,7 +15,13 @@ make # all
 合ってるといいなぁ
 
 ```
-./trace ./path/to/trace.nbt
+./decode\_trace ./path/to/trace.nbt
+```
+
+## 読める命令列を既定のバイナリで出力
+
+```
+./encode\_trace ./path/to/trace.txt
 ```
 
 # 命令列を実行して、targetと一致するか調べる
