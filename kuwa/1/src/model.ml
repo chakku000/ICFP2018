@@ -6,7 +6,6 @@ type 'a matrix = 'a array array array
 type model = (int * voxel matrix)
 
 let parse chan =
-
   let r = input_byte chan in
 
   let buf = Bytes.make 1 ' ' in
