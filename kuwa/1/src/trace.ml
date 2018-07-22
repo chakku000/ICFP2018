@@ -1,6 +1,8 @@
 
 open Command
-exception Invalid_trace
+exception Invalid_trace of string
+exception Invalid_sld
+exception Invalid_lld
 
 (*
  * decode
@@ -12,14 +14,15 @@ let decode_sld a i =
   | 0b01 -> (i-5, 0, 0)
   | 0b10 -> (0, i-5, 0)
   | 0b11 -> (0, 0, i-5)
-  | _ -> raise Invalid_trace
+  | _ -> raise Invalid_sld
 
 (* long coordinate difference *)
-let decode_lld a i = match a with
+let decode_lld a i =
+  match a with
   | 0b01 -> (i-15, 0, 0)
   | 0b10 -> (0, i-15, 0)
   | 0b11 -> (0, 0, i-15)
-  | _ -> raise Invalid_trace
+  | _ -> raise Invalid_lld
 
 (* near coordinate difference *)
 let decode_ncd nd =
@@ -31,13 +34,13 @@ let decode_ncd nd =
 let parse_bin chan = begin
   let read_byte =
     let buf = Bytes.make 1 '0' in
-    fun chan ->
+    fun () ->
       try really_input chan buf 0 1; Some (Bytes.get buf 0 |> int_of_char)
       with _ -> None
   in
 
   let rec loop () =
-    match read_byte chan with
+    match read_byte () with
     | None -> []
     | Some b -> begin
       let cmd = match b with
@@ -48,18 +51,18 @@ let parse_bin chan = begin
         match b land 0b1111, b land 0b111 with
         | 0b0100, _ -> begin (* SMove *)
           let a = (b lsr 4) land 0b11 in
-          match read_byte chan with
-          | None -> raise Invalid_trace
+          match read_byte () with
+          | None -> raise (Invalid_trace "SMove")
           | Some b' -> let i = b' land 0b11111 in Smove (decode_lld a i)
         end
         | 0b1100, _ -> begin (* LMove *)
           let a2 = (b lsr 6) land 0b11 in
           let a1 = (b lsr 4) land 0b11 in
-          match read_byte chan with
-          | None -> raise Invalid_trace
+          match read_byte () with
+          | None -> raise (Invalid_trace "LMove")
           | Some b' ->
-             let i2, i1 = (b' lsr 4), b' land 0b1111 in
-             Lmove (decode_lld a1 i1, decode_lld i2 a2)
+             let i2, i1 = b' lsr 4, b' land 0b11111 in
+             Lmove (decode_sld a1 i1, decode_sld a2 i2)
         end
         | _, 0b111 -> begin (* FusionP *)
           let nd = (b lsr 3) land 0b11111 in
@@ -71,15 +74,15 @@ let parse_bin chan = begin
         end
         | _, 0b101 -> begin (* Fission *)
           let nd = (b lsr 3) land 0b11111 in
-          match read_byte chan with
-          | None -> raise Invalid_trace
+          match read_byte () with
+          | None -> raise (Invalid_trace "Fission")
           | Some b' -> Fission (decode_ncd nd, b')
         end
         | _, 0b011 -> begin (* Fill *)
           let nd = (b lsr 3) land 0b11111 in
           Fill (decode_ncd nd)
         end
-        | _ -> raise Invalid_trace
+        | _ -> raise (Invalid_trace "Unknown")
       end
       in
       cmd :: loop ()
@@ -134,9 +137,6 @@ let parse_inst chan =
     with
       End_of_inst | Scanf.Scan_failure _ -> []
   in loop ()
-
-exception Invalid_sld
-exception Invalid_lld
 
 let encode_sld = function
   | x,0,0 -> (0b01, x+5)
