@@ -140,6 +140,8 @@ int main(int argc,char** argv){
     vector<string> commands;
     char R;
     {
+        //cout << argv[2] << endl;
+        //printf("%s\n",argv[2]);
         std::ifstream model(argv[2],std::ios::binary);
         if(!model){
             std::cerr << "Model File Open Error" << std::endl;
