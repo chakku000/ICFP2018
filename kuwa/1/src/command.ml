@@ -45,8 +45,8 @@ let show_command = function
   | Void d ->
       sprintf "Void %s" (show_vec d)
   | Gfill (nd, fd) ->
-      sprintf "Gfill %s %s" (show_vec nd) (show_vec fd)
+      sprintf "GFill %s %s" (show_vec nd) (show_vec fd)
   | Gvoid (nd, fd) ->
-      sprintf "Gvoid %s %s" (show_vec nd) (show_vec fd)
+      sprintf "GVoid %s %s" (show_vec nd) (show_vec fd)
 
 
