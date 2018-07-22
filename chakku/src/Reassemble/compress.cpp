@@ -10,6 +10,32 @@ bool sameDirSmove(trace::command pre,trace::command cur){
     return false;
 }
 
+int mlen(int x, int y, int z){
+  return std::abs(x) + std::abs(y) + std::abs(z);
+}
+
+std::vector<trace::command> lmoveOPT(std::vector<trace::command>& commands){
+  std::vector<trace::command> res;
+  for (int i = 0; i < commands.size(); i++)
+  {
+    if(commands[i].type == trace::OP_SMOV) {
+      auto lld1 = commands[i].data.lld;
+      if(mlen(lld1.x, lld1.y, lld1.z) <= 5 && commands[i+1].type == trace::OP_SMOV) {
+        auto lld2 = commands[i+1].data.lld;
+        if(mlen(lld2.x, lld2.y, lld2.z) <= 5 &&
+           ((lld1.x * lld2.x) + (lld1.y * lld2.y) + (lld1.z * lld2.z) == 0 )) {
+          res.push_back(trace::opLMov(lld1.x, lld1.y, lld1.z, lld2.x, lld2.y, lld2.z));
+          i++;
+          continue;
+        }
+      }
+    }
+    res.push_back(commands[i]);
+  }
+  return res;
+}
+
+
 std::vector<trace::command> compress(const std::vector<trace::command> cmds){
     int x=0,y=0,z=0;
     std::vector<trace::command> ret;
@@ -70,7 +96,8 @@ int main(int argc,char* argv[]){
     //std::cout << "-----------------------------" << std::endl;
 
     auto compressed = compress(codes);
+    auto lmoveopt = lmoveOPT(compressed);
     //trace::print(compressed);
     std::ofstream fout(argv[2],std::ios::binary);
-    encode(compressed,fout);
+    encode(lmoveopt,fout);
 }
