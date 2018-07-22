@@ -151,6 +151,14 @@ class Cmd:
         # [(x0, y0, z0, x1, y1, z1), ...]
         return []
 
+    # コマンドによる移動量を返す
+    def move_vector(self) -> Tuple[int]:
+        return None
+
+    def relative_volatile(self) -> List[List[int]]:
+        assert 0
+        return []
+
     def assertion(self, s) -> bool:
         return True
 
@@ -208,6 +216,9 @@ class Wait(Cmd):
     def calc_cost(self):
         return 0
 
+    def temp_volatile(self, c) -> List[List[int]]:
+        return [pos_to_region(c)]
+
     def output(self) -> str:
         return "Wait"
 
@@ -240,8 +251,15 @@ class SMove(Cmd):
         b.add_c(self.lld)
         self.pos1 = b.get_c()
 
+    def move_vector(self) -> Tuple[int]:
+        return tuple(self.lld)
+
     def volatile(self) -> List[List[int]]:
         return [pos2_to_region(self.pos, self.pos1)]
+
+    def temp_volatile(self, c0) -> List[List[int]]:
+        c1 = pos_add(self.lld, c0)
+        return [pos2_to_region(c0, c1)]
 
     def calc_cost(self):
         x, y, z = self.lld
@@ -266,8 +284,18 @@ class LMove(Cmd):
         b.add_c(self.sld2)
         self.pos2 = b.get_c()
 
+    def move_vector(self) -> Tuple[int]:
+        x0, y0, z0 = self.sld1
+        x1, y1, z1 = self.sld2
+        return (x0+x1, y0+y1, z0+z1)
+
     def volatile(self) -> List[List[int]]:
         return [pos2_to_region(self.pos, self.pos1), pos2_to_region(self.pos1, self.pos2)]
+
+    def temp_volatile(self, c0) -> List[List[int]]:
+        c1 = pos_add(self.sld1, c0)
+        c2 = pos_add(self.sld2, c1)
+        return [pos2_to_region(c0, c1), pos2_to_region(c1, c2)]
 
     def calc_cost(self):
         x0, y0, z0 = self.sld1
@@ -529,7 +557,8 @@ class State:
 
         # low-harmonicsのチェック
         if self.harmonics == 0:
-            assert check_grounded(R, M)
+            #assert check_grounded(R, M)
+            ...
 
         tM = self.target_matrix
         d = set()

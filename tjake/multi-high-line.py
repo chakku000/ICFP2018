@@ -41,6 +41,61 @@ def single_move(p0, q0, sw):
             x0 += l
     return cs
 
+def test_collinsion(rs0, rs1):
+    for r0 in rs0:
+        for r1 in rs1:
+            if colli(r0, r1):
+                return 1
+    return 0
+
+def add_commands_with_blocking(p0, p1, cs0, cs1):
+    x0, z0 = p0; x1, z1 = p1
+    cs = []
+    i0 = i1 = 0
+    w = Wait()
+    while i0 < len(cs0) and i1 < len(cs1):
+        c0 = cs0[i0]; c1 = cs1[i1]
+        rs0 = c0.temp_volatile((x0, 0, z0))
+        rs1 = c1.temp_volatile((x1, 0, z1))
+        dx0, _, dz0 = c0.move_vector()
+        dx1, _, dz1 = c1.move_vector()
+        ok = 1
+        if test_collinsion(rs0, rs1):
+            t0 = test_collinsion(rs0, w.temp_volatile((x1, 0, z1)))
+            t1 = test_collinsion(w.temp_volatile((x0, 0, z0)), rs1)
+            if t0 or t1:
+                assert not (t0 and t1), "deadlock!"
+                if t1:
+                    cs.append((cs0[i0], Wait()))
+                    i0 += 1
+                    x0 += dx0; z0 += dz0
+                else:
+                    cs.append((Wait(), cs1[i1]))
+                    i1 += 1
+                    x1 += dx1; z1 += dz1
+            else:
+                if len(cs0) - i0 > len(cs1) - i1:
+                    cs.append((cs0[i0], Wait()))
+                    i0 += 1
+                    x0 += dx0; z0 += dz0
+                else:
+                    cs.append((Wait(), cs1[i1]))
+                    i1 += 1
+                    x1 += dx1; z1 += dz1
+        else:
+            cs.append((cs0[i0], cs1[i1]))
+            i0 += 1; i1 += 1
+            x0 += dx0; z0 += dz0
+            x1 += dx1; z1 += dz1
+    while i0 < len(cs0):
+        cs.append((cs0[i0], Wait()))
+        i0 += 1
+    while i1 < len(cs1):
+        cs.append((Wait(), cs1[i1]))
+        i1 += 1
+    return cs
+
+
 xf = zf = yf = 0
 state.set((Flip(),))
 
@@ -58,6 +113,7 @@ for y in range(R):
             if M[x][y][z]:
                 cnt += 1
                 if cnt == 30:
+                    tmp.append((x, z-cnt+1, x, z))
                     cnt = 0
                     num0 += 1
             else:
@@ -80,6 +136,7 @@ for y in range(R):
             if M[x][y][z]:
                 cnt += 1
                 if cnt == 30:
+                    tmp.append((x-cnt+1, z, x, z))
                     cnt = 0
                     num1 += 1
             else:
@@ -159,7 +216,6 @@ for y in range(R):
                         cb = SMove((0, 0, min(LD, zb - z1)))
                         z1 += min(LD, zb-z1)
                     state.set((ca, cb))
-                    state.nanobot_debug()
                 if one:
                     state.set((Fill((0, -1, 0)), Wait()))
                 else:
@@ -172,19 +228,30 @@ for y in range(R):
                 j += 1
             if j < R:
                 xa, za, xb, zb = mv[j][0]
+                if za == zb:
+                    zb += 1
                 cs0 = single_move((x0, z0), (xa, za), 0)
                 l1 = max(min(SD, xb - x1), -SD)
                 l2 = max(min(SD, zb - z1), -SD)
                 if l2 == 0:
+                    l1 = max(min(LD, xb - x1), -LD)
                     cs1 = [SMove((l1, 0, 0))]
+                    cs1.extend(single_move((x1 + l1, z1), (xb, zb), 0))
                 else:
                     cs1 = [LMove((l1, 0, 0), (0, 0, l2))]
-                    x1 += l1; z1 += l2
-                    cs1.extend(single_move((x1, z1), (xb, zb), 0))
+                    # x1 += l1; z1 += l2
+                    cs1.extend(single_move((x1 + l1, z1 + l2), (xb, zb), 1))
+
+                cs = add_commands_with_blocking((x0, z0), (x1, z1), cs0, cs1)
+                for c0, c1 in cs:
+                    state.set((c0, c1))
+
+                """
                 for i in range(max(len(cs0), len(cs1))):
                     c0 = Wait() if len(cs0) <= i else cs0[i]
                     c1 = Wait() if len(cs1) <= i else cs1[i]
                     state.set((c0, c1))
+                """
                 x0 = xa; z0 = za
                 x1 = xb; z1 = zb
         else:
@@ -222,7 +289,9 @@ for y in range(R):
                 #print("g")
                 if one:
                     state.set((Fill((0, -1, 0)), Wait()))
+                    #state.nanobot_debug()
                 else:
+                    #state.nanobot_debug()
                     state.set((GFill((0, -1, 0), (xb-xa, 0, 0)), GFill((0, -1, 0), (-(xb-xa), 0, 0))))
                 x0 = xa; z0 = za
                 x1 = xb; z1 = zb
@@ -232,21 +301,31 @@ for y in range(R):
                 j += 1
             if j < R:
                 xa, za, xb, zb = mv[j][0]
+                if xa == xb:
+                    xb += 1
                 cs0 = single_move((x0, z0), (xa, za), 1)
                 l1 = max(min(SD, xb - x1), -SD)
                 l2 = max(min(SD, zb - z1), -SD)
                 if l1 == 0:
+                    l2 = max(min(LD, zb - z1), -LD)
                     cs1 = [SMove((0, 0, l2))]
+                    cs1.extend(single_move((x1, z1 + l2), (xb, zb), 0))
                 else:
                     cs1 = [LMove((0, 0, l2), (l1, 0, 0))]
-                    x1 += l1; z1 += l2
-                    cs1.extend(single_move((x1, z1), (xb, zb), 0))
+                    #x1 += l1; z1 += l2
+                    cs1.extend(single_move((x1 + l1, z1 + l2), (xb, zb), 0))
                 #print(cs0, cs1, x0, z0, xa, za, x1, z1, xb, zb)
+                #state.nanobot_debug()
+                cs = add_commands_with_blocking((x0, z0), (x1, z1), cs0, cs1)
+                for c0, c1 in cs:
+                    state.set((c0, c1))
+                """
                 for i in range(max(len(cs0), len(cs1))):
                     c0 = Wait() if len(cs0) <= i else cs0[i]
                     c1 = Wait() if len(cs1) <= i else cs1[i]
                     state.set((c0, c1))
                     #state.nanobot_debug()
+                """
                 x0 = xa; z0 = za
                 x1 = xb; z1 = zb
             #print("m", j)
