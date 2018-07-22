@@ -21,9 +21,11 @@ def command_generator(f):
 
 state = State(R, M)
 filename = argv[2]
+step = 0
 with open(filename, 'r') as f:
     while not state.is_exit():
         cmds = []
+        step += 1
         for i in range(state.get_n()):
             cmd, *prms = f.readline().split()
             *prms, = map(int, prms)
@@ -38,6 +40,6 @@ with open(filename, 'r') as f:
             else:
                 assert 0, "unknown command %s" % (cmd, prms)
         state.set(cmds)
-    print("finish")
+    print("finish (step: %d)" % step)
 state.check()
 print(state.get_energy())

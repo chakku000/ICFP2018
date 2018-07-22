@@ -4,7 +4,7 @@ from collections import deque
 # helper
 
 def pos_to_region(c: List[int]):
-    return tuple(c*2)
+    return tuple(c*2) + (0,)
 
 def pos2_to_region(c0: List[int], c1: List[int]) -> Tuple[int]:
     x0, y0, z0 = c0
@@ -15,7 +15,18 @@ def pos2_to_region(c0: List[int], c1: List[int]) -> Tuple[int]:
         y0, y1 = y1, y0
     if not z0 <= z1:
         z0, z1 = z1, z0
-    return tuple([x0, y0, z0, x1, y1, z1])
+    return tuple([x0, y0, z0, x1, y1, z1, 0])
+
+def pos2_to_group_region(c0: List[int], c1: List[int]) -> Tuple[int]:
+    x0, y0, z0 = c0
+    x1, y1, z1 = c1
+    if not x0 <= x1:
+        x0, x1 = x1, x0
+    if not y0 <= y1:
+        y0, y1 = y1, y0
+    if not z0 <= z1:
+        z0, z1 = z1, z0
+    return tuple([x0, y0, z0, x1, y1, z1, 1])
 
 def pos_add(c: List[int], dc: List[int]):
     x0, y0, z0 = c
@@ -23,12 +34,15 @@ def pos_add(c: List[int], dc: List[int]):
     return tuple([x0+dx, y0+dy, z0+dz])
 
 def colli(r0: List[int], r1: List[int]) -> bool:
-    x0, y0, z0, x1, y1, z1 = r0
-    x2, y2, z2, x3, y3, z3 = r1
+    x0, y0, z0, x1, y1, z1, t0 = r0
+    x2, y2, z2, x3, y3, z3, t1 = r1
+    if t0 == t1 and r0 == r1:
+        # GFill, GVoidのための特別判定
+        return False
     return max(x0, x2) <= min(x1, x3) and max(y0, y2) <= min(y1, y3) and max(z0, z2) <= min(z1, z3)
 
 def containFill(r: List[int], M: List[List[List[int]]]) -> int:
-    x0, y0, z0, x1, y1, z1 = r
+    x0, y0, z0, x1, y1, z1, t = r
     for x in range(x0, x1+1):
         for y in range(y0, y1+1):
             for z in range(z0, z1+1):
@@ -78,6 +92,10 @@ def check_LLD(lld: List[int]) -> bool:
 def check_ND(nd: List[int]) -> bool:
     ax, ay, az = map(abs, nd)
     return 0 < ax + ay + az <= 2 and max(ax, ay, az) == 1
+
+def check_FD(fd: List[int]) -> bool:
+    ax, ay, az = map(abs, fd)
+    return 0 < max(ax, ay, az) <= 30
 
 # ===== Nanobot =====
 
@@ -144,6 +162,9 @@ class Cmd:
         return None
 
     def fill(self) -> Tuple[int]:
+        return None
+
+    def void(self) -> Tuple[int]:
         return None
 
     def fusion(self) -> Tuple[int]:
@@ -273,12 +294,29 @@ class Fill(Cmd):
     def volatile(self) -> List[List[int]]:
         return [pos_to_region(self.pos), pos_to_region(self.pos1)]
 
-    def fill(self):
-        return self.pos1
+    def fill(self) -> Tuple[int]:
+        return pos_to_region(self.pos1)
 
     def calc_cost(self):
         # 既にFillされているケースを想定しない
         return 12
+
+# Void: 消す
+class Void(Cmd):
+    def __init__(self, nd: List[int]):
+        super().__init__()
+        self.nd = nd
+        assert check_ND(nd), nd
+
+    def update(self, b: Nanobot) -> None:
+        self.pos = b.get_c()
+        self.pos1 = pos_add(self.pos, self.nd)
+
+    def volatile(self) -> List[List[int]]:
+        return [pos_to_region(self.pos), pos_to_region(self.pos1)]
+
+    def void(self) -> Tuple[int]:
+        return pos_to_region(self.pos1)
 
 # FusionP (Fusion Primary): Fusionの代表者
 class FusionP(Cmd):
@@ -289,7 +327,7 @@ class FusionP(Cmd):
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
-        self.pos1 = pos_add(self.pos)
+        self.pos1 = pos_add(self.pos, self.nd)
 
     def volatile(self) -> List[List[int]]:
         return [pos_to_region(self.pos)]
@@ -312,7 +350,7 @@ class FusionS(Cmd):
 
     def update(self, b: Nanobot) -> None:
         self.pos = b.get_c()
-        self.pos1 = pos_add(self.pos)
+        self.pos1 = pos_add(self.pos, self.nd)
 
     def volatile(self) -> List[List[int]]:
         return [pos_to_region(self.pos)]
@@ -326,6 +364,44 @@ class FusionS(Cmd):
     def calc_cost(self):
         # FusionPでコストが計算される
         return 0
+
+class GFill(Cmd):
+    def __init__(self, nd: List[int], fd: List[int]):
+        super().__init__()
+        self.nd = nd
+        self.fd = fd
+        assert check_ND(nd), nd
+        assert check_FD(fd), fd
+
+    def update(self, b: Nanobot) -> None:
+        self.pos = b.get_c()
+        self.pos1 = pos_add(self.pos, self.nd)
+        self.pos2 = pos_add(self.pos1, self.fd)
+
+    def volatile(self) -> List[List[int]]:
+        return [pos_to_region(self.pos), pos2_to_group_region(self.pos1, self.pos2)]
+
+    def fill(self) -> Tuple[int]:
+        return pos2_to_region(self.pos1, self.pos2)
+
+class GVoid(Cmd):
+    def __init__(self, nd: List[int], fd: List[int]):
+        super().__init__()
+        self.nd = nd
+        self.fd = fd
+        assert check_ND(nd), nd
+        assert check_FD(fd), fd
+
+    def update(self, b: Nanobot) -> None:
+        self.pos = b.get_c()
+        self.pos1 = pos_add(self.pos, self.nd)
+        self.pos2 = pos_add(self.pos1, self.fd)
+
+    def volatile(self) -> List[List[int]]:
+        return [pos_to_region(self.pos), pos2_to_group_region(self.pos1, self.pos2)]
+
+    def void(self) -> Tuple[int]:
+        return pos2_to_region(self.pos1, self.pos2)
 
 class State:
     def __init__(self, R: int, targetM: List[List[List[int]]]):
@@ -345,6 +421,7 @@ class State:
         return self.N
 
     def get_energy(self) -> int:
+        # 最終ステップのコストを含んでいないため、それを含めたものを返す
         return self.energy + 3*self.R**3 + 20
 
     def is_exit(self) -> bool:
@@ -409,14 +486,21 @@ class State:
 
         tM = self.target_matrix
         d = set()
+        u = set()
         for i, cmd in enumerate(cmds):
             bot = bots[i]
             f = cmd.fill()
             if f:
-                x, y, z = f
-                assert M[x][y][z] == 0, (x, y, z)
-                assert tM[x][y][z] == 1, (x, y, z)
-                M[x][y][z] = 1
+                if f in u:
+                    continue
+                u.add(f)
+                x0, y0, z0, x1, y1, z1, t = f
+                for x in range(x0, x1+1):
+                    for y in range(y0, y1+1):
+                        for z in range(z0, z1+1):
+                            assert M[x][y][z] == 0, (x, y, z)
+                            assert tM[x][y][z] == 1, (x, y, z)
+                            M[x][y][z] = 1
             g = cmd.generate()
             if g:
                 m, c = g
