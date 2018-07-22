@@ -117,7 +117,7 @@ std::vector<command> decode(std::ifstream& fin){
       c = fin.get();
       unsigned char sld2i = (c >> 4) & 0b1111;
       unsigned char sld1i = c & 0b1111;
-      command_data sld = decode_sld(sld1a, sld1i, sld1a, sld2i);
+      command_data sld = decode_sld(sld1a, sld1i, sld2a, sld2i);
       //std::cout << "LMove" << std::endl;
       cmds.push_back(command(OP_LMOV, sld));
     } else if((c & 0b111) == 0b111){
@@ -188,7 +188,7 @@ void encode(std::vector<command> cmds, std::ofstream& fout){
            if(d.sld.x2 != 0) a2 = 0b01, i2 = d.sld.x2 + 5;
       else if(d.sld.y2 != 0) a2 = 0b10, i2 = d.sld.y2 + 5;
       else if(d.sld.z2 != 0) a2 = 0b11, i2 = d.sld.z2 + 5;
-      fout.put((a2 << 6) | (a2 << 4) | 0b1100);
+      fout.put((a2 << 6) | (a1 << 4) | 0b1100);
       fout.put((i2 << 4) | i1);
     } else if(t == OP_FUSP){
       unsigned char nd = (d.nd.x + 1) * 9 + (d.nd.y + 1) * 3 + (d.nd.z + 1);
@@ -251,7 +251,6 @@ void print(std::vector<command> cmds){
       std::cout << "GFill <" << d.nfd.nx << "," << d.nfd.ny << "," << d.nfd.nz << ">" 
                     << ", <" << d.nfd.fx << "," << d.nfd.fy << "," << d.nfd.fz << ">" << std::endl;
     } else if(t == OP_GFIL) {
-      unsigned char nd = (d.nfd.nx + 1) * 9 + (d.nfd.ny + 1) * 3 + (d.nfd.nz + 1);
       std::cout << "Gvoid <" << d.nfd.nx << "," << d.nfd.ny << "," << d.nfd.nz << ">" 
                     << ", <" << d.nfd.fx << "," << d.nfd.fy << "," << d.nfd.fz << ">" << std::endl;
     }
