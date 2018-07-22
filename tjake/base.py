@@ -491,12 +491,17 @@ class State:
         self.N = 1
         self.exit = 0
 
+        self.groundcheck = False
+
     def get_n(self) -> int:
         return self.N
 
     def get_energy(self) -> int:
         # 最終ステップのコストを含んでいないため、それを含めたものを返す
         return self.energy + 3*self.R**3 + 20
+
+    def check_grounded(self, flag: bool) -> None:
+        self.groundcheck = flag
 
     def is_exit(self) -> bool:
         return bool(self.exit)
@@ -556,9 +561,9 @@ class State:
             self.harmonics ^= 1
 
         # low-harmonicsのチェック
-        if self.harmonics == 0:
+        # BFS探索しているのでめっちゃおもいです
+        if self.harmonics == 0 and self.groundcheck:
             assert check_grounded(R, M)
-            #...
 
         tM = self.target_matrix
         d = set()

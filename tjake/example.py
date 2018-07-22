@@ -1,4 +1,5 @@
 # (decoded) traceの動きを模擬
+# python3 example.py <LA***_tgt.mdl> <decode_trace出力のテキスト形式のトレース>
 from base import *
 from file_io import *
 

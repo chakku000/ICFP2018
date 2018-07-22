@@ -15,6 +15,7 @@ with open(filename, 'rb') as f:
     R, M = mdl_reader(f)
 
 state = State(R, M)
+state.check_grounded(True)
 LD = 15
 SD = 5
 
