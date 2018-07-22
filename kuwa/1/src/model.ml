@@ -6,7 +6,6 @@ type 'a matrix = 'a array array array
 type model = (int * voxel matrix)
 
 let parse chan =
-
   let r = input_byte chan in
 
   let buf = Bytes.make 1 ' ' in
@@ -18,13 +17,12 @@ let parse chan =
           if num mod 8 = 0 then begin
             really_input chan buf 0 1;
           end;
-          let byte = Bytes.get buf 0 |> int_of_char in
+          let byte = int_of_char (Bytes.get buf 0)in
+          let ofs = num mod 8 in
 
-          let idx = 1 + num / 8 in
-          let offset = (8 + num) - 8 * idx in
-
-          let b = (byte lsr (7-offset)) land 1 in
+          let b = (byte lsr ofs) land 1 in
           if b = 1 then Full else Void)))
+
   in (r, mtx)
 
 let show_voxel = function

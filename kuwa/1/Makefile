@@ -23,6 +23,7 @@ decode_trace:
 encode_trace:
 	ocamlc -I src/ src/model.ml src/command.ml src/trace.ml src/encode_trace.ml -o $(ENCODE_TRACE_OUT)
 
+
 model:
 	ocamlc -I src/ src/model.ml src/model_main.ml -o $(MODEL_OUT)
 

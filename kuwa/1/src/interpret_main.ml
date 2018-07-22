@@ -13,8 +13,6 @@ let () =
 
   let dump_flag = Array.length Sys.argv >= 4 && Sys.argv.(3) = "dump" in
 
-  Printf.printf "model: %s\n" Sys.argv.(1);
-  Printf.printf "trace: %s\n%!" Sys.argv.(2);
   let (r, mtx) = Model.parse (open_in_bin Sys.argv.(1)) in
   let trace = Trace.parse_bin (open_in_bin Sys.argv.(2)) in
   let init_st : state = {
@@ -35,10 +33,13 @@ let () =
   |> begin function
     | Err msg -> Printf.printf "[error] %s\n" msg
     | Ok ({ enr; mtx=mtx' }) -> begin
-          Printf.printf "energy: %d\n" enr;
           if dump_flag then begin
             Model.print (r,mtx')
           end else begin
+            Printf.printf "energy: %d\n" enr;
+            Printf.printf "model: %s\n" Sys.argv.(1);
+            Printf.printf "trace: %s\n%!" Sys.argv.(2);
+            Printf.printf "# of commands: %d\n%!" (List.length trace);
             if mtx = mtx' then
               print_endline "success"
             else
