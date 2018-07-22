@@ -51,7 +51,7 @@ def containFill(r: List[int], M: List[List[List[int]]]) -> int:
     return 0
 
 dd = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
-def checkGrounded(R: int, M: List[List[List[int]]]) -> bool:
+def check_grounded(R: int, M: List[List[List[int]]]) -> bool:
     que = deque()
     used = set()
     for i in range(R):
@@ -72,7 +72,7 @@ def checkGrounded(R: int, M: List[List[List[int]]]) -> bool:
         for j in range(R):
             for k in range(R):
                 if M[i][j][k] and (i, j, k) not in used:
-                    print(i, j, k, M[i])
+                    #print(i, j, k, M[i])
                     return 0
     return 1
 
@@ -100,18 +100,14 @@ def check_FD(fd: List[int]) -> bool:
 # ===== Nanobot =====
 
 class Nanobot:
-    def __init__(self, i: int, c: List[int]):
-        self.id = i
+    def __init__(self, c: List[int], s: int):
         self.c = list(c)
-        self.s = []
+        self.s = s
 
     def add_c(self, c: List[int]) -> None:
         x, y, z = c
         x0, y0, z0 = self.c
         self.c = [x+x0, y+y0, z+z0]
-
-    def get_i(self) -> int:
-        return self.id
 
     def set_c(self, c: List[int]) -> None:
         self.c = c
@@ -119,11 +115,11 @@ class Nanobot:
     def get_c(self) -> Tuple[int]:
         return tuple(self.c)
 
-    def set_s(self, s: List[int]) -> None:
-        self.seeds = s
+    def get_s(self) -> int:
+        return self.s
 
-    def get_s(self) -> List[int]:
-        return list(self.seeds)
+    def set_s(self, s: int) -> None:
+        self.s = s
 
 # ===== 各コマンド =====
 
@@ -255,8 +251,8 @@ class LMove(Cmd):
         return [pos2_to_region(self.pos, self.pos1), pos2_to_region(self.pos1, self.pos2)]
 
     def calc_cost(self):
-        x0, y0, z0 = self.lld
-        x1, y1, z1 = self.lld
+        x0, y0, z0 = self.sld1
+        x1, y1, z1 = self.sld2
         return 2*(abs(x0) + abs(y0) + abs(z0) + 2 + abs(x1) +abs(y1) + abs(z1))
 
 # Fission: 分裂
@@ -275,7 +271,7 @@ class Fission(Cmd):
         return [pos_to_region(self.pos), pos_to_region(self.pos1)]
 
     def generate(self) -> Tuple[int, List[int]]:
-        return (m, self.pos1)
+        return (self.m, self.pos1)
 
     def calc_cost(self):
         return 24
@@ -298,8 +294,7 @@ class Fill(Cmd):
         return pos_to_region(self.pos1)
 
     def calc_cost(self):
-        # 既にFillされているケースを想定しない
-        return 12
+        return 0
 
 # Void: 消す
 class Void(Cmd):
@@ -317,6 +312,9 @@ class Void(Cmd):
 
     def void(self) -> Tuple[int]:
         return pos_to_region(self.pos1)
+
+    def calc_cost(self):
+        return 0
 
 # FusionP (Fusion Primary): Fusionの代表者
 class FusionP(Cmd):
@@ -384,6 +382,9 @@ class GFill(Cmd):
     def fill(self) -> Tuple[int]:
         return pos2_to_region(self.pos1, self.pos2)
 
+    def calc_cost(self) -> int:
+        return 0
+
 class GVoid(Cmd):
     def __init__(self, nd: List[int], fd: List[int]):
         super().__init__()
@@ -403,6 +404,9 @@ class GVoid(Cmd):
     def void(self) -> Tuple[int]:
         return pos2_to_region(self.pos1, self.pos2)
 
+    def calc_cost(self) -> int:
+        return 0
+
 class State:
     def __init__(self, R: int, targetM: List[List[List[int]]]):
         self.R = R
@@ -410,8 +414,7 @@ class State:
         self.harmonics = 0
         self.matrix = [[[0]*R for i in range(R)] for j in range(R)]
         self.target_matrix = targetM
-        bot = Nanobot(1, (0, 0, 0))
-        bot.set_s(tuple(range(2, 21)))
+        bot = Nanobot((0, 0, 0), 39)
         self.bots = [bot]
         self.traces = []
         self.N = 1
@@ -429,7 +432,7 @@ class State:
 
     def set(self, cmds: List[Cmd]) -> None:
         assert not self.exit, "input commands after halt"
-        assert self.N == len(cmds)
+        assert self.N == len(cmds), (self.N, len(cmds))
 
         R = self.R
         M = self.matrix
@@ -472,9 +475,9 @@ class State:
                 rs2 = rs[j]
                 for r1 in rs1:
                     for r2 in rs2:
-                        assert not colli(r1, r2)
+                        assert not colli(r1, r2), (r1, r2)
             for r1 in rs1:
-                assert not containFill(r1, M)
+                assert not containFill(r1, M), r1
 
         # flip harmonics
         if flip:
@@ -482,44 +485,74 @@ class State:
 
         # low-harmonicsのチェック
         if self.harmonics == 0:
-            assert checkGrounded(R, M)
+            assert check_grounded(R, M)
 
         tM = self.target_matrix
         d = set()
-        u = set()
+        uf = set(); uv = set()
         for i, cmd in enumerate(cmds):
             bot = bots[i]
             f = cmd.fill()
             if f:
-                if f in u:
+                if f in uf:
                     continue
-                u.add(f)
+                uf.add(f)
                 x0, y0, z0, x1, y1, z1, t = f
                 for x in range(x0, x1+1):
                     for y in range(y0, y1+1):
                         for z in range(z0, z1+1):
                             assert M[x][y][z] == 0, (x, y, z)
                             assert tM[x][y][z] == 1, (x, y, z)
+                            if M[x][y][z] == 0:
+                                self.energy += 12
+                            else:
+                                self.energy += 6
                             M[x][y][z] = 1
+            v = cmd.void()
+            if v:
+                if v in uv:
+                    continue
+                uv.add(v)
+                x0, y0, z0, x1, y1, z1, t = v
+                for x in range(x0, x1+1):
+                    for y in range(y0, y1+1):
+                        for z in range(z0, z1+1):
+                            assert M[x][y][z] == 1, (x, y, z)
+                            #assert tM[x][y][z] == 0, (x, y, z)
+                            if M[x][y][z] == 0:
+                                self.energy += 3
+                            else:
+                                self.energy -= 12
+                            M[x][y][z] = 0
             g = cmd.generate()
             if g:
                 m, c = g
                 seeds = bot.get_s()
-                assert 0 < len(seeds) and m+1 <= len(seeds)
-                bot.set_s(seeds[m+1:])
-                g_bot = Nanobot(seeds[0], c)
-                g_bot.set_s(seeds[1:m+1])
+                assert 0 < seeds and m+1 <= seeds
+                bot.set_s(seeds - m - 1)
+                g_bot = Nanobot(c, m)
                 bots.append(g_bot)
+                self.N += 1
             f = cmd.fusion()
             if f:
                 j = b_map[f]
-                assert cmds[j].is_fusion()
+                assert cmds[j].fusion() is not None
                 assert cmd.is_primary_fusion() ^ cmds[j].is_primary_fusion()
                 if cmd.is_primary_fusion():
-                    seeds = bot.get_s() + bots[j].get_s() + (bots[j].get_i(),)
+                    seeds = bot.get_s() + bots[j].get_s() + 1
+                    bot.set_s(seeds)
                 else:
                     d.add(i)
         self.bots = [bots[i] for i in range(self.N) if i not in d]
+        self.N = len(self.bots)
+
+    def nanobot_debug(self):
+        a = []
+        for i in range(self.N):
+            bot = self.bots[i]
+            a.append("%s" % (bot.get_c(),))
+        print("< %s >" % " ".join(a))
+
 
     def check(self):
         M = self.matrix
