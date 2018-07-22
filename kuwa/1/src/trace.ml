@@ -47,9 +47,9 @@ let parse_bin chan = begin
     | Some v -> f v
   in
 
-  let rec loop () =
+  let rec loop rs =
     match read_byte () with
-    | None -> []
+    | None -> List.rev rs
     | Some b -> begin
       let cmd = match b with
       | 0b11111111 -> Halt
@@ -119,9 +119,9 @@ let parse_bin chan = begin
         | _ -> raise (Invalid_trace "Unknown")
       end
       in
-      cmd :: loop ()
+      loop (cmd::rs)
     end
-  in loop ()
+  in loop []
 end
 
 let print =
@@ -171,15 +171,15 @@ let parse_inst chan =
     end
     | _ -> raise Invalid_command
   in
-  let rec loop () =
+  let rec loop rs =
     try
       let cmd = scan " %s" (fun s -> 
         if s = "" then raise End_of_inst;
         f s) in
-      cmd :: loop ()
+      loop (cmd::rs)
     with
-      End_of_inst | Scanf.Scan_failure _ -> []
-  in loop ()
+      End_of_inst | Scanf.Scan_failure _ -> rs
+  in loop []
 
 let encode_sld = function
   | x,0,0 -> (0b01, x+5)
