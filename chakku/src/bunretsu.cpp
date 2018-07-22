@@ -32,6 +32,54 @@ constexpr double eps = 1e-10;
 constexpr ll mod = 1e9+7;
 const int dx[]={1,0,-1,0} ,dy[] = {0,1,0,-1};
 /*}}}*/
+struct Vertex{
+    int x,y,z;
+    Vertex(){}
+    Vertex(int x,int y,int z) : x(x),y(y),z(z){}
+};
 
-int main(){
+int R;
+
+vector<V> vertexes;
+bool matrix[256][256][256];
+
+void solve(){
+}
+
+
+/**
+ * argv[1] : モデルファイル
+ */
+int main(int argc,char** argv){
+    if(argc < 2){
+        cerr << "引数エラー" << endl;
+        return 1;
+    }
+
+    {   // バイナリファイルの読み込み
+        ifstream model(argv[1],std::std::ios::binary);
+        if(!model){
+            cerr << "Model File cannot open" << endl;
+            return -1;
+        }
+        {
+            char tmp;
+            model.read(&tmp,sizeof(tmp));
+            R=tmp;
+            int idx=0;
+            while(!model.eof()){
+                model.read(&tmp,sizeof(tmp));
+                for(int i=0;i<8;i++) if((tmp>>i)&1){
+                    int x=idx/(R*R);
+                    int y=(idx%(R*R))/R;
+                    int z=idx%R;
+                    matrix[x][y][z]=true;
+                    vertexes.emplace_back(Vertex(x,y,z));
+                }
+            }
+        }
+    }
+
+
+    solve();
 }
