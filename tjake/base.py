@@ -173,6 +173,13 @@ class Cmd:
         assert 0, "calc_cost() is not implemented"
         return 0
 
+    def output(self) -> str:
+        assert 0, "output() is not implemented"
+        return ""
+
+    def __str__(self) -> str:
+        return self.output()
+
 # Halt: 停止命令
 class Halt(Cmd):
     def update(self, b: Nanobot) -> None:
@@ -187,6 +194,9 @@ class Halt(Cmd):
     def calc_cost(self):
         return 0
 
+    def output(self) -> str:
+        return "Halt"
+
 # Wait: 待機命令
 class Wait(Cmd):
     def update(self, b: Nanobot) -> None:
@@ -197,6 +207,9 @@ class Wait(Cmd):
 
     def calc_cost(self):
         return 0
+
+    def output(self) -> str:
+        return "Wait"
 
 # Flip: harmonicsの反転処理
 class Flip(Cmd):
@@ -211,6 +224,9 @@ class Flip(Cmd):
 
     def calc_cost(self):
         return 0
+
+    def output(self) -> str:
+        return "Flip"
 
 # SMove: 1回の移動
 class SMove(Cmd):
@@ -230,6 +246,9 @@ class SMove(Cmd):
     def calc_cost(self):
         x, y, z = self.lld
         return 2*(abs(x) + abs(y) + abs(z))
+
+    def output(self) -> str:
+        return "SMove %d %d %d" % self.lld
 
 # LMove: 2回の移動
 class LMove(Cmd):
@@ -255,6 +274,9 @@ class LMove(Cmd):
         x1, y1, z1 = self.sld2
         return 2*(abs(x0) + abs(y0) + abs(z0) + 2 + abs(x1) +abs(y1) + abs(z1))
 
+    def output(self) -> str:
+        return "LMove %d %d %d %d %d %d" % (*self.sld1, *self.sld2)
+
 # Fission: 分裂
 class Fission(Cmd):
     def __init__(self, nd: List[int], m: int):
@@ -276,6 +298,9 @@ class Fission(Cmd):
     def calc_cost(self):
         return 24
 
+    def output(self) -> str:
+        return "Fission %d %d %d %d" % (*self.nd, self.m)
+
 # Fill: 埋める
 class Fill(Cmd):
     def __init__(self, nd: List[int]):
@@ -296,6 +321,9 @@ class Fill(Cmd):
     def calc_cost(self):
         return 0
 
+    def output(self) -> str:
+        return "Fill %d %d %d" % self.nd
+
 # Void: 消す
 class Void(Cmd):
     def __init__(self, nd: List[int]):
@@ -315,6 +343,9 @@ class Void(Cmd):
 
     def calc_cost(self):
         return 0
+
+    def output(self) -> str:
+        return "Void %d %d %d" % self.nd
 
 # FusionP (Fusion Primary): Fusionの代表者
 class FusionP(Cmd):
@@ -338,6 +369,9 @@ class FusionP(Cmd):
 
     def calc_cost(self):
         return -24
+
+    def output(self) -> str:
+        return "FusionP %d %d %d" % self.nd
 
 # FusionS (Fusion Secondary): Fusionの子供
 class FusionS(Cmd):
@@ -363,6 +397,9 @@ class FusionS(Cmd):
         # FusionPでコストが計算される
         return 0
 
+    def output(self):
+        return "FusionS %d %d %d" % self.nd
+
 class GFill(Cmd):
     def __init__(self, nd: List[int], fd: List[int]):
         super().__init__()
@@ -385,6 +422,9 @@ class GFill(Cmd):
     def calc_cost(self) -> int:
         return 0
 
+    def output(self) -> str:
+        return "GFill %d %d %d %d %d %d" % (*self.nd, *self.fd)
+
 class GVoid(Cmd):
     def __init__(self, nd: List[int], fd: List[int]):
         super().__init__()
@@ -406,6 +446,9 @@ class GVoid(Cmd):
 
     def calc_cost(self) -> int:
         return 0
+
+    def outut(self):
+        return "GVoid %d %d %d %d %d %d" % (*self.nd, *self.fd)
 
 class State:
     def __init__(self, R: int, targetM: List[List[List[int]]]):
@@ -452,6 +495,7 @@ class State:
                 bot = self.bots[0]
                 assert bot.get_c() == (0, 0, 0), "halt when bots[0] = %s" % bot.get_c()
                 self.exit = 1
+                self.command_output(cmds)
                 return
             bot = bots[i]
             cmd.update(bot)
@@ -545,6 +589,11 @@ class State:
                     d.add(i)
         self.bots = [bots[i] for i in range(self.N) if i not in d]
         self.N = len(self.bots)
+
+        self.command_output(cmds)
+
+    def command_output(self, cmds: List[Cmd]) -> None:
+        print(*cmds, sep='\n')
 
     def nanobot_debug(self):
         a = []
