@@ -160,6 +160,15 @@ let parse_inst chan =
     | "FusionS" -> begin
       scan " %d %d %d" (fun x y z -> Fusion2 (x,y,z))
     end
+    | "Void" -> begin
+      scan " %d %d %d" (fun x y z -> Void (x,y,z))
+    end
+    | "Gfill" -> begin
+      scan " %d %d %d %d %d %d" (fun x1 y1 z1 x2 y2 z2 -> Gfill ((x1,y1,z1), (x2,y2,z2)))
+    end
+    | "Gvoid" -> begin
+      scan " %d %d %d %d %d %d" (fun x1 y1 z1 x2 y2 z2 -> Gvoid ((x1,y1,z1), (x2,y2,z2)))
+    end
     | _ -> raise Invalid_command
   in
   let rec loop () =
