@@ -29,6 +29,19 @@ struct command {
   command(int type, command_data data) : type(type), data(data) {}
 };
 
+command opHalt() { return command(OP_HALT); }
+command opWait() { return command(OP_WAIT); }
+command opFlip() { return command(OP_FLIP); }
+command opSMov(int x, int y, int z) { return command(OP_SMOV, { .lld = {x, y, z} }); }
+command opLMov(int x1, int y1, int z1, int x2, int y2, int z2) { return command(OP_LMOV, { .sld = {x1, y1, z1, x2, y2, z2} }); }
+command opFusP(int x, int y, int z) { return command(OP_FUSP, { .nd = {x, y, z} }); }
+command opFusS(int x, int y, int z) { return command(OP_FUSS, { .nd = {x, y, z} }); }
+command opFiss(int x, int y, int z, int m) { return command(OP_FISS, { .ndm = {x, y, z, m} }); }
+command opFill(int x, int y, int z) { return command(OP_FILL, { .nd = {x, y, z} }); }
+command opVoid(int x, int y, int z) { return command(OP_VOID, { .nd = {x, y, z} }); }
+command opGFil(int nx, int ny, int nz, int fx, int fy, int fz) { return command(OP_GFIL, { .nfd = {nx, ny, nz, fx, fy, fz} }); }
+command opGVid(int nx, int ny, int nz, int fx, int fy, int fz) { return command(OP_GVID, { .nfd = {nx, ny, nz, fx, fy, fz} }); }
+
 command_data decode_lld(unsigned char a, unsigned char i){
   switch(a) {
     case 0b01:
@@ -243,8 +256,12 @@ void print(std::vector<command> cmds){
 // code for test
 int main(int argc, char* argv[]) {
   std::ifstream fin(argv[1], std::ios::binary);
-  std::ofstream fout(argv[2], std::ios::binary);
   auto codes = decode(fin);
   print(codes);
+  std::vector<command> cmds;
+  cmds.push_back(opSMov(12, 0, 0));
+  cmds.push_back(opLMov(3, 0, 0, 0, -5, 0));
+  cmds.push_back(opFill(0, -1, 0));
+  print(cmds);
   fin.close();
 }
