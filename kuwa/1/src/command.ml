@@ -17,6 +17,10 @@ type command =
   | Fill of vec
   | Fusion1 of vec
   | Fusion2 of vec
+  (* new commands *)
+  | Void of vec
+  | Gfill of (vec * vec)
+  | Gvoid of (vec * vec)
 
 open Printf
 
@@ -38,5 +42,11 @@ let show_command = function
       sprintf "FusionP %s" (show_vec d)
   | Fusion2 d ->
       sprintf "FusionS %s" (show_vec d)
+  | Void d ->
+      sprintf "Void %s" (show_vec d)
+  | Gfill (nd, fd) ->
+      sprintf "Gfill %s %s" (show_vec nd) (show_vec fd)
+  | Gvoid (nd, fd) ->
+      sprintf "Gvoid %s %s" (show_vec nd) (show_vec fd)
 
 
