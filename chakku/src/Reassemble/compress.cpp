@@ -58,10 +58,10 @@ std::vector<trace::command> compress(const std::vector<trace::command> cmds){
 
 
 int main(int argc,char* argv[]){
-    if(argc<3){
-        std::cerr << "引数が足りない..." << std::endl;
-        return 1;
-    }
+    //if(argc<3){
+    //    std::cerr << "引数が足りない..." << std::endl;
+    //    return 1;
+    //}
     std::ifstream fin(argv[1],std::ios::binary);
     auto codes = trace::decode(fin);
     fin.close();
