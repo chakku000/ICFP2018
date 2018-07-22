@@ -18,6 +18,10 @@ let rec find_opt f = function
   | [] -> None
   | x::xs -> if f x then Some x else find_opt f xs
 
+let dim ((x1,y1,z1), (x2,y2,z2)) =
+  let f a b = if a = b then 0 else 1 in
+  f x1 x2 + f y1 y2 + f z1 z2
+
 (* END utility *)
 
 type id = int
@@ -42,7 +46,12 @@ type state = {
   prv : int; (* the ID of last active nanobot *)
   bots : bot list;
   trace : command list;
+  gfill_queries : ((vec * vec) * int) list;
+  gvoid_queries : ((vec * vec) * int) list;
 }
+
+let add_query ((r, c) as q) qs =
+  List.filter (fun (r', _) -> r <> r') qs |> cons q
 
 let rec run ({ bots; trace } as st) =
   let n = List.length bots in
@@ -55,7 +64,7 @@ let rec run ({ bots; trace } as st) =
     Err "lack of traces"
   else
 
-  let rec loop tr ({ enr; hrm; r; bots; prv; trace } as st) =
+  let rec loop tr ({ enr; hrm; r; bots; prv; trace; gfill_queries; gvoid_queries } as st) =
     match tr with
     (* end of traces *)
     | [] -> Ok st
@@ -117,6 +126,17 @@ let rec run ({ bots; trace } as st) =
         loop trs { st with bots = bots'; enr = enr' }
       end
 
+      (* Fill *)
+      | Fill d -> begin
+        let (fx,fy,fz) = pos +: d in
+        (* TODO: validate pos, volatile coords *)
+        let e = mtx.(fx).(fy).(fz) in
+        mtx.(fx).(fy).(fz) <- Full;
+
+        let enr' = enr + match e with Void -> 12 | Full -> 6 in
+        loop trs { st with enr = enr' }
+      end
+
       (* Fission *)
       | Fission (d, m) -> begin
         guard (List.length seeds >= m+1) "[Fission] lack of seeds" >>= fun _ ->
@@ -138,18 +158,91 @@ let rec run ({ bots; trace } as st) =
         loop trs { st with bots = bots'; enr = enr' }
       end
 
-      (* Fill *)
-      | Fill d -> begin
-        let (fx,fy,fz) = pos +: d in
+      | Void nd -> begin
+        let (fx,fy,fz) = pos +: nd in
         (* TODO: validate pos, volatile coords *)
         let e = mtx.(fx).(fy).(fz) in
-        mtx.(fx).(fy).(fz) <- Full;
+        mtx.(fx).(fy).(fz) <- Void;
 
-        let enr' = enr + match e with Void -> 12 | Full -> 6 in
+        let enr' = enr + match e with Void -> -12 | Full -> 3 in
         loop trs { st with enr = enr' }
+      end
+
+      | Gfill (nd, fd) -> begin
+        let (x1,y1,z1), (x2,y2,z2) = pos +: nd, pos +: nd +: fd in
+        let ((sx,sy,sz), (tx,ty,tz) as region) =
+          (min x1 x1, min y1 y2, min z1 z2), (max x1 x2, max y1 y2, max z1 z2) in
+        let c =
+          match find_opt (fun (r, _) -> r = region) gfill_queries with
+          | None -> 1
+          | Some (_, c) -> c+1
+        in
+
+        let q', fire =
+          if c = (1 lsl dim region) then
+            List.filter (fun (r, _) -> r <> region) gfill_queries, true
+          else
+            add_query (region, c) gfill_queries, false
+        in
+
+        let consumed =
+          Array.init (tx-sx+1) (fun dx ->
+            Array.init (ty-sy+1) (fun dy ->
+              Array.init (tz-sz+1) (fun dz ->
+                let x, y, z = sx+dx, sy+dy, sz+dz in
+                let v = mtx.(x).(y).(z) in
+                mtx.(x).(y).(z) <- Full;
+                match v with Void -> 12 | Full -> 6)))
+          |> Array.fold_left (Array.fold_left (Array.fold_left (+))) 0
+        in
+
+        loop trs { st with
+          gfill_queries = q';
+          enr = enr + consumed
+        }
+      end
+
+      | Gvoid (nd, fd) -> begin
+        let (x1,y1,z1), (x2,y2,z2) = pos +: nd, pos +: nd +: fd in
+        let ((sx,sy,sz), (tx,ty,tz) as region) =
+          (min x1 x1, min y1 y2, min z1 z2), (max x1 x2, max y1 y2, max z1 z2) in
+        let c =
+          match find_opt (fun (r, _) -> r = region) gvoid_queries with
+          | None -> 1
+          | Some (_, c) -> c+1
+        in
+
+        let q', fire =
+          if c = (1 lsl dim region) then
+            List.filter (fun (r, _) -> r <> region) gvoid_queries, true
+          else
+            add_query (region, c) gvoid_queries, false
+        in
+
+        let consumed =
+          Array.init (tx-sx+1) (fun dx ->
+            Array.init (ty-sy+1) (fun dy ->
+              Array.init (tz-sz+1) (fun dz ->
+                let x, y, z = sx+dx, sy+dy, sz+dz in
+                let v = mtx.(x).(y).(z) in
+                mtx.(x).(y).(z) <- Void;
+                match v with Void -> 3 | Full -> -12)))
+          |> Array.fold_left (Array.fold_left (Array.fold_left (+))) 0
+        in
+
+        loop trs { st with
+          gvoid_queries = q';
+          enr = enr + consumed
+        }
       end
       | _ -> Err "not implemented"
     end
   in
-  loop tr st >>= fun st' -> run { st' with trace = trace' }
+  loop tr st >>= fun ({ gfill_queries; gvoid_queries } as st') ->
+    if List.length gfill_queries <> 0 then
+      Err "invalid GFill"
+    else if List.length gvoid_queries <> 0 then
+      Err "invalid GVoid"
+    else
+      run { st' with trace = trace' }
   end
