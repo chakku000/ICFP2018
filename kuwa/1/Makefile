@@ -7,7 +7,7 @@ INTERPRET_OUT := interpret
 
 OUT := $(MODEL_OUT) $(COMPRESS_OUT) $(DECODE_TRACE_OUT) $(ENCODE_TRACE_OUT) $(INTERPRET_OUT)
 
-OCAMLCC := ocamlc
+OCAMLCC := ocamlopt.opt
 
 .PHONY: $(OUT)
 
