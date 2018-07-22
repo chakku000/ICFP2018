@@ -24,6 +24,9 @@ let decode_lld a i =
   | 0b11 -> (0, 0, i-15)
   | _ -> raise Invalid_lld
 
+(* far coordinate difference *)
+let decode_fd x y z = (x-30, y-30, z-30)
+
 (* near coordinate difference *)
 let decode_ncd nd =
   nd/9 - 1,
@@ -37,6 +40,11 @@ let parse_bin chan = begin
     fun () ->
       try really_input chan buf 0 1; Some (Bytes.get buf 0 |> int_of_char)
       with _ -> None
+  in
+  let (>>=) x f =
+    match x with
+    | None -> None
+    | Some v -> f v
   in
 
   let rec loop () =
@@ -81,6 +89,32 @@ let parse_bin chan = begin
         | _, 0b011 -> begin (* Fill *)
           let nd = (b lsr 3) land 0b11111 in
           Fill (decode_ncd nd)
+        end
+        | _, 0b010 -> begin (* Void *)
+          let nd = (b lsr 3) land 0b11111 in
+          Void (decode_ncd nd)
+        end
+        | _, 0b001 -> begin (* Gfill *)
+          let nd = (b lsr 3) land 0b11111 in
+          begin
+            read_byte () >>= fun b1 ->
+            read_byte () >>= fun b2 ->
+            read_byte () >>= fun b3 ->
+              Some (Gfill (decode_ncd nd, decode_fd b1 b2 b3))
+          end |> function
+            | Some c -> c
+            | None -> raise (Invalid_trace "Gfill")
+        end
+        | _, 0b000 -> begin (* Gvoid *)
+          let nd = (b lsr 3) land 0b11111 in
+          begin
+            read_byte () >>= fun b1 ->
+            read_byte () >>= fun b2 ->
+            read_byte () >>= fun b3 ->
+              Some (Gvoid (decode_ncd nd, decode_fd b1 b2 b3))
+          end |> function
+            | Some c -> c
+            | None -> raise (Invalid_trace "Gfill")
         end
         | _ -> raise (Invalid_trace "Unknown")
       end
@@ -152,6 +186,8 @@ let encode_lld = function
 
 let encode_nd (x,y,z) = (x+1) * 9 + (y+1) * 3 + (z+1)
 
+let encode_fd (x,y,z) = (x+30, y+30,z+30)
+
 let encode_cmd cmd =
   match cmd with
   | Halt -> [0b11111111]
@@ -177,6 +213,17 @@ let encode_cmd cmd =
   end
   | Fusion2 nd -> begin
     [(encode_nd nd lsl 3) + 0b110]
+  end
+  | Void nd -> begin
+    [(encode_nd nd lsl 3) + 0b010]
+  end
+  | Gfill (nd, fd) -> begin
+    let (ex,ey,ez) = encode_fd fd in
+    [(encode_nd nd lsl 3) + 0b001; ex; ey; ez]
+  end
+  | Gvoid (nd, fd) -> begin
+    let (ex,ey,ez) = encode_fd fd in
+    [(encode_nd nd lsl 3) + 0b000; ex; ey; ez]
   end
 
 let print_bin trace =
