@@ -557,8 +557,8 @@ class State:
 
         # low-harmonicsのチェック
         if self.harmonics == 0:
-            #assert check_grounded(R, M)
-            ...
+            assert check_grounded(R, M)
+            #...
 
         tM = self.target_matrix
         d = set()
