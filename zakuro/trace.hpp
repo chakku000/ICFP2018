@@ -2,18 +2,23 @@
 #include <fstream>
 #include <vector>
 
-#define OP_HALT 1
-#define OP_WAIT 2
-#define OP_FLIP 3
-#define OP_SMOV 4
-#define OP_LMOV 5
-#define OP_FUSP 6
-#define OP_FUSS 7
-#define OP_FISS 8
-#define OP_FILL 9
-#define OP_VOID 10
-#define OP_GFIL 11
-#define OP_GVID 12
+#ifndef TRACE_HPP
+#define TRACE_HPP
+
+namespace trace {
+
+const int OP_HALT = 1;
+const int OP_WAIT = 2;
+const int OP_FLIP = 3;
+const int OP_SMOV = 4;
+const int OP_LMOV = 5;
+const int OP_FUSP = 6;
+const int OP_FUSS = 7;
+const int OP_FISS = 8;
+const int OP_FILL = 9;
+const int OP_VOID = 10;
+const int OP_GFIL = 11;
+const int OP_GVID = 12;
 
 union command_data {
   struct { int x, y, z; } lld;
@@ -253,15 +258,6 @@ void print(std::vector<command> cmds){
   }
 }
 
-// code for test
-int main(int argc, char* argv[]) {
-  std::ifstream fin(argv[1], std::ios::binary);
-  auto codes = decode(fin);
-  print(codes);
-  std::vector<command> cmds;
-  cmds.push_back(opSMov(12, 0, 0));
-  cmds.push_back(opLMov(3, 0, 0, 0, -5, 0));
-  cmds.push_back(opFill(0, -1, 0));
-  print(cmds);
-  fin.close();
 }
+
+#endif
