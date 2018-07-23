@@ -1,14 +1,9 @@
+# ri-domi-
 
 ## Preparation
 
 ```
 make # all
-```
-
-## デフォルト実装の `SMove` を圧縮する
-
-```
-./compress ./path/to/trace.nbt
 ```
 
 ## モデルを可視化する(見づらい)
@@ -34,18 +29,18 @@ make # all
 
 ## 命令列を実行して、targetと一致するか調べる
 
-broken
-
 ```
 ./interpret ./path/to/target.mdl ./path/to/trace.nbt
 ```
 
-## Stack overflow (or `Bad_luck`) したが？
+## デフォルト実装の `SMove` を圧縮する
 
 ```
-OCAMLRUNPARAM='l=4G'
+./compress ./path/to/trace.nbt
 ```
 
-等を先頭につける
+## デフォルト実装のharmonicsをいい感じにする
 
-ocamloptはなぜかバグる
+```
+./opt1 ./path/to/target.mdl ./path/to/trace.nbt
+```
