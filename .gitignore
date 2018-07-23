@@ -10,6 +10,7 @@ kuwa/1/compress
 kuwa/1/interpret
 kuwa/1/decode_trace
 kuwa/1/encode_trace
+kuwa/1/opt1
 kuwa/**/*.o
 
 ## end kuwa

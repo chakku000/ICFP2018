@@ -24,14 +24,14 @@ let decode_lld a i =
   | 0b11 -> (0, 0, i-15)
   | _ -> raise Invalid_lld
 
-(* far coordinate difference *)
-let decode_fd x y z = (x-30, y-30, z-30)
-
 (* near coordinate difference *)
 let decode_ncd nd =
   nd/9 - 1,
   (nd mod 9) / 3 - 1,
   (nd mod 3) - 1
+
+(* far coordinate difference *)
+let decode_fd x y z = (x-30, y-30, z-30)
 
 (* parse: parse .nbt file *)
 let parse_bin chan = begin
@@ -45,7 +45,7 @@ let parse_bin chan = begin
     match x with
     | None -> None
     | Some v -> f v
-  in
+  in 
 
   let rec loop rs =
     match read_byte () with
@@ -97,24 +97,24 @@ let parse_bin chan = begin
         | _, 0b001 -> begin (* Gfill *)
           let nd = (b lsr 3) land 0b11111 in
           begin
-            read_byte () >>= fun b1 ->
-            read_byte () >>= fun b2 ->
-            read_byte () >>= fun b3 ->
-              Some (Gfill (decode_ncd nd, decode_fd b1 b2 b3))
+            read_byte () >>= (fun b1 ->
+            read_byte () >>= (fun b2 ->
+            read_byte () >>= (fun b3 ->
+              Some (Gfill (decode_ncd nd, decode_fd b1 b2 b3)))))
           end |> function
             | Some c -> c
-            | None -> raise (Invalid_trace "Gfill")
+            | None -> raise (Invalid_trace "GFill")
         end
-        | _, 0b000 -> begin (* Gvoid *)
+        | _, 0b000 -> begin (* GVoid *)
           let nd = (b lsr 3) land 0b11111 in
           begin
-            read_byte () >>= fun b1 ->
-            read_byte () >>= fun b2 ->
-            read_byte () >>= fun b3 ->
-              Some (Gvoid (decode_ncd nd, decode_fd b1 b2 b3))
+            read_byte () >>= (fun b1 ->
+            read_byte () >>= (fun b2 ->
+            read_byte () >>= (fun b3 ->
+              Some (Gvoid (decode_ncd nd, decode_fd b1 b2 b3)))))
           end |> function
             | Some c -> c
-            | None -> raise (Invalid_trace "Gfill")
+            | None -> raise (Invalid_trace "GVoid")
         end
         | _ -> raise (Invalid_trace "Unknown")
       end

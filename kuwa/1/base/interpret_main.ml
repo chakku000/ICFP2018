@@ -16,6 +16,7 @@ let () =
   let argc = Array.length Sys.argv in
   
   let extras = if argc < 3 then [||] else Array.sub Sys.argv 3 (argc - 3) in
+  let energy_flag = exists "energy" extras in
   let dump_flag = exists "dump" extras in
   let empty_flag = exists "empty" extras in
 
@@ -30,7 +31,7 @@ let () =
     bots = [
       { bid = 1;
         pos = (0,0,0);
-        seeds = seq 2 20; }
+        seeds = seq 2 40; }
     ];
     trace = trace;
     gfill_queries = [];
@@ -41,7 +42,9 @@ let () =
   |> begin function
     | Err msg -> Printf.printf "[error] %s\n" msg
     | Ok ({ enr; mtx=mtx' }) -> begin
-          if dump_flag then begin
+          if energy_flag then begin
+            Printf.printf "%d\n" enr;
+          end else if dump_flag then begin
             Model.print (r,mtx')
           end else begin
             Printf.printf "energy: %d\n" enr;

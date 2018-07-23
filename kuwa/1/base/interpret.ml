@@ -56,26 +56,31 @@ let add_query ((r, c) as q) qs =
 let rec run ({ bots; trace } as st) =
   let n = List.length bots in
   if n = 0 then begin
-    if trace = [] then Ok st else Err "dead"
+    if trace = [] then Ok st else Err "bots are dead leaving commands"
   end else begin
 
   let tr, trace' = take n trace, drop n trace in
-  if List.length tr <> n then
-    Err "lack of traces"
-  else
+  if List.length tr <> n then begin
+    Printf.printf "%d %d %d\n" n (List.length tr) (List.length trace);
+    Err "lack of commands"
+  end else
 
-  let rec loop tr ({ enr; hrm; r; bots; prv; trace; gfill_queries; gvoid_queries } as st) =
+  let rec loop tr ({ enr; hrm; r; bots; prv; gfill_queries; gvoid_queries } as st) =
     match tr with
     (* end of traces *)
-    | [] -> Ok st
+    | [] -> begin
+      Ok st
+    end
 
     | (tr::trs) -> begin
+      Printf.printf "%d\n" enr;
       guard (List.length bots >= 1) "no active bot" >>= fun _ ->
 
       let ({ bid; pos; seeds } as bot) =
         find_opt (fun {bid=i} -> i > prv) bots
         |> function | None -> List.nth bots 0 | Some b -> b
       in
+
       let add_cost =
         let { bid=b' } = List.nth bots 0 in
         if bid = b' then
@@ -87,7 +92,8 @@ let rec run ({ bots; trace } as st) =
       in
 
       let ({ enr; hrm; r; mtx; prv; bots; trace } as st) =
-        { st with prv = bid; trace = trs; enr = enr + add_cost } in
+        { st with prv = bid; enr = enr + add_cost } in
+
       match tr with
 
       (* Halt *)
