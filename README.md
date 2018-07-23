@@ -9,6 +9,3 @@ https://icfpcontest2018.github.io/
     - IQ1
 - Team Public ID
     - 0116
-- Team Private ID
-    - 3ae9dc47877e4dc9b450525d9f980b0b
-
