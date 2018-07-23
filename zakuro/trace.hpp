@@ -209,15 +209,15 @@ void encode(std::vector<command> cmds, std::ofstream& fout){
     } else if(t == OP_GFIL) {
       unsigned char nd = (d.nfd.nx + 1) * 9 + (d.nfd.ny + 1) * 3 + (d.nfd.nz + 1);
       fout.put((nd << 3) | 0b001);
-      fout.put(d.nfd.fx & 0xFF);
-      fout.put(d.nfd.fy & 0xFF);
-      fout.put(d.nfd.fz & 0xFF);
-    } else if(t == OP_GFIL) {
+      fout.put((d.nfd.fx+30) & 0xFF);
+      fout.put((d.nfd.fy+30) & 0xFF);
+      fout.put((d.nfd.fz+30) & 0xFF);
+    } else if(t == OP_GVID) {
       unsigned char nd = (d.nfd.nx + 1) * 9 + (d.nfd.ny + 1) * 3 + (d.nfd.nz + 1);
       fout.put((nd << 3) | 0b000);
-      fout.put(d.nfd.fx & 0xFF);
-      fout.put(d.nfd.fy & 0xFF);
-      fout.put(d.nfd.fz & 0xFF);
+      fout.put((d.nfd.fx+30) & 0xFF);
+      fout.put((d.nfd.fy+30) & 0xFF);
+      fout.put((d.nfd.fz+30) & 0xFF);
     }
   }
 }
@@ -250,7 +250,7 @@ void print(std::vector<command> cmds){
     } else if(t == OP_GFIL) {
       std::cout << "GFill <" << d.nfd.nx << "," << d.nfd.ny << "," << d.nfd.nz << ">" 
                     << ", <" << d.nfd.fx << "," << d.nfd.fy << "," << d.nfd.fz << ">" << std::endl;
-    } else if(t == OP_GFIL) {
+    } else if(t == OP_GVID) {
       std::cout << "Gvoid <" << d.nfd.nx << "," << d.nfd.ny << "," << d.nfd.nz << ">" 
                     << ", <" << d.nfd.fx << "," << d.nfd.fy << "," << d.nfd.fz << ">" << std::endl;
     }
