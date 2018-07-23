@@ -68,7 +68,7 @@ let optimize_flips mdl trace = begin
       | Lmove ((_,dy1,_), (_,dy2,_)) -> begin
         loop (y+dy1+dy2) h (t::rs) ts
       end
-      | Fill (_,dy,_) | Void (_,dy,_)  -> begin
+      | Fill (_,dy,_) | Void (_,dy,_) -> begin
         let y' = y+dy in
         match hm.(y') with
         | High when h = Low -> loop y High (t::Flip::rs) ts
